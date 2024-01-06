@@ -1,8 +1,13 @@
+const WSSERVER_IP = "94.21.108.74";
+const WSSERVER_PORT = "3000";
+
 const termDoc = document.getElementById('terminal');
 const term = new Terminal({
 	cursorBlink: true,
 });
 const fitAddon = new FitAddon.FitAddon();
+const socket = new WebSocket("ws://" + WSSERVER_IP + ":" + WSSERVER_PORT);
+
 term.loadAddon(fitAddon);
 term.attachCustomKeyEventHandler((e) => {
 	if (e.code.match(/F.+/) !== null) return false;
@@ -26,7 +31,6 @@ new ResizeObserver(entries => {
 	}
 }).observe(termDoc);
 
-const socket = new WebSocket("ws://localhost:3000");
 term.onData(command => {
 	socket.send(command);
 });

@@ -4,14 +4,15 @@ const path = require("path");
 const os = require('os');
 const pty = require('node-pty');
 const WebSocket = require("ws");
-const { Terminal } = require("@xterm/xterm");
 
-function heartbeat() { this.isAlive = true; }
+const TIMEOUT = 5000;
+const SOCKET_PORT = 3000;
+const WEB_PORT = 3001;
 
 const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
 const users = [];
 
-const wss = new WebSocket.Server({ port: 3000 });
+const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log("new session: " + req.socket.remoteAddress);
 
@@ -29,7 +30,7 @@ wss.on('connection', (ws, req) => {
 
 	ws.isAlive = true;
 	ws.on('error', console.error);
-	ws.on('pong', heartbeat);
+	ws.on('pong', () => ws.isAlive = true);
 	ws.on('message', command => {
 		if(command.at(0) == 4)
 		{
@@ -52,20 +53,22 @@ setInterval(() => {
 	while(i--)
 	{
 		const user = users[i];
-		if (user.ws.isAlive === false)
+		const ws = user.ws;
+		const proc = user.proc;
+		if (ws.isAlive === false)
 		{
-			console.log("disconnected: " + user.ws._socket.remoteAddress);
-			user.ws.removeAllListeners();
-			user.ws.terminate();
-			user.proc.onData().dispose();
-			user.proc.kill();
+			console.log("disconnected: " + ws._socket.remoteAddress);
+			ws.removeAllListeners();
+			ws.terminate();
+			proc.onData().dispose();
+			proc.kill();
 			users.splice(i, 1);
 			continue;
 		}
-		user.ws.isAlive = false;
-		user.ws.ping();
+		ws.isAlive = false;
+		ws.ping();
 	};
-}, 5000);
+}, TIMEOUT);
 
 app.use("/public", express.static(path.resolve("./public")));
 app.use("/node_modules", express.static(path.resolve("./node_modules")));
@@ -76,4 +79,4 @@ app.get("/", (req, res) => {
 	res.sendFile(index_page);
 });
 
-app.listen(3001, console.log("started"));
+app.listen(WEB_PORT, console.log("started"));
