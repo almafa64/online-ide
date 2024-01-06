@@ -1,0 +1,18 @@
+{
+  "name": "online_code_editor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "almafa64",
+  "license": "ISC",
+  "dependencies": {
+    "@xterm/addon-fit": "^0.9.0-beta.1",
+    "@xterm/xterm": "^5.4.0-beta.1",
+    "express": "^4.18.2",
+    "node-pty": "^1.0.0",
+    "ws": "^8.16.0"
+  }
+}
