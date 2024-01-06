@@ -1,5 +1,4 @@
 const express = require("express");
-const app = express();
 const path = require("path");
 const os = require('os');
 const pty = require('node-pty');
@@ -10,6 +9,7 @@ const SOCKET_PORT = 3000;
 const WEB_PORT = 3001;
 
 const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
+const app = express();
 const users = [];
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
@@ -20,7 +20,7 @@ wss.on('connection', (ws, req) => {
 		name: 'xterm-color',
 		cwd: process.cwd(),
 		env: process.env,
-		useConpty: false,	// look into this
+		useConpty: true,	// windows: true: crash after proc.kill(), false: duplicated lines
 	});
 
 	users.push({

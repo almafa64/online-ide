@@ -1,4 +1,4 @@
-const WSSERVER_IP = "94.21.108.74";
+const WSSERVER_IP = "192.168.1.11";
 const WSSERVER_PORT = "3000";
 
 const termDoc = document.getElementById('terminal');
@@ -34,5 +34,73 @@ new ResizeObserver(entries => {
 term.onData(command => {
 	socket.send(command);
 });
-socket.onmessage = (e) => term.write(e.data);
+socket.onmessage = (e) => {
+	term.write(e.data);
+}
 socket.onopen = (e) => resize(term);
+
+const editor = ace.edit("editor", {
+    "selectionStyle": "line",
+    "highlightActiveLine": true,
+    "highlightSelectedWord": true,
+    "readOnly": false,
+    "copyWithEmptySelection": false,
+    "cursorStyle": "ace",
+    "mergeUndoDeltas": true,
+    "behavioursEnabled": true,
+    "wrapBehavioursEnabled": true,
+    "enableAutoIndent": true,
+    "keyboardHandler": "ace/keyboard/vscode",
+    "showLineNumbers": true,
+    "relativeLineNumbers": false,
+    "enableKeyboardAccessibility": false,
+    "customScrollbar": false,
+    "hScrollBarAlwaysVisible": false,
+    "vScrollBarAlwaysVisible": false,
+    "highlightGutterLine": true,
+    "animatedScroll": false,
+    "showInvisibles": false,
+    "showPrintMargin": false,
+    "printMarginColumn": 80,
+    "printMargin": false,
+    "fadeFoldWidgets": false,
+    "showFoldWidgets": true,
+    "displayIndentGuides": true,
+    "highlightIndentGuides": true,
+    "showGutter": true,
+    "fontSize": 12,
+    "scrollPastEnd": 1,
+    "fixedWidthGutter": false,
+    "theme": "ace/theme/monokai",
+    "maxPixelHeight": 0,
+    "useTextareaForIME": true,
+    "useSvgGutterIcons": false,
+    "showFoldedAnnotations": false,
+    "scrollSpeed": 2,
+    "dragDelay": 0,
+    "dragEnabled": true,
+    "focusTimeout": 0,
+    "tooltipFollowsMouse": true,
+    "firstLineNumber": 1,
+    "overwrite": false,
+    "newLineMode": "auto",
+    "useWorker": false,
+    "useSoftTabs": true,
+    "navigateWithinSoftTabs": false,
+    "tabSize": 4,
+    "wrap": 80,
+    "indentedSoftWrap": true,
+    "foldStyle": "markbegin",
+    "mode": "ace/mode/javascript",
+    "enableMultiselect": true,
+    "enableBlockSelect": true,
+    "loadDroppedFile": true,
+    "enableEmmet": true,
+    "enableBasicAutocompletion": true,
+    "enableLiveAutocompletion": true,
+    "liveAutocompletionDelay": 0,
+    "liveAutocompletionThreshold": 0,
+    "enableSnippets": true,
+});
+editor.setTheme("ace/theme/monokai");
+editor.session.setMode("ace/mode/javascript");
