@@ -1,4 +1,4 @@
-const WSSERVER_IP = "192.168.1.11";
+const WSSERVER_IP = location.hostname;
 const WSSERVER_PORT = "3000";
 
 const termDoc = document.getElementById('terminal');
@@ -7,6 +7,9 @@ const term = new Terminal({
 });
 const fitAddon = new FitAddon.FitAddon();
 const socket = new WebSocket("ws://" + WSSERVER_IP + ":" + WSSERVER_PORT);
+
+const runBut = document.getElementById("run_button");
+const stopBut = document.getElementById("stop_button");
 
 term.loadAddon(fitAddon);
 term.attachCustomKeyEventHandler((e) => {
@@ -104,3 +107,11 @@ const editor = ace.edit("editor", {
 });
 editor.setTheme("ace/theme/monokai");
 editor.session.setMode("ace/mode/javascript");
+
+runBut.addEventListener("click", () => {
+
+});
+
+stopBut.addEventListener("click", () => {
+
+});

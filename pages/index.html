@@ -4,8 +4,13 @@
 		<link rel="stylesheet" href="node_modules/@xterm/xterm/css/xterm.css" />
 		<script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
 		<script src="node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+		<link rel="stylesheet" href="public/css/index.css">
 	</head>
 	<body>
+		<div>
+			<button id="run_button">Run</button>
+			<button id="stop_button" hidden>Stop</button>
+		</div>
 		<div>
 			<div id="editor" style="height: 50vh;">function foo(items) {
 	var x = "All this is syntax highlighted";
