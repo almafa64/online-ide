@@ -19,12 +19,11 @@ if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 function run_python(name, user) {
 	const child = spawn("python", [path.join(user.path, name)]);
+	user.runner = { "proc": child, "file": name };
 	child.stdout.on("data", (data) => {
-		console.log("d: '" + data.toString() + "'");
 		user.ws.send(data.toString());
 	});
 	child.stderr.on("data", (data) => {
-		console.log("e: '" + data.toString() + "'");
 		user.ws.send(data.toString());
 	});
 	child.on("exit", () => {
@@ -36,12 +35,11 @@ function save_file(data, name, user)
 {
 	if(!fs.existsSync(user.path)) fs.mkdirSync(user.path);
 	fs.writeFileSync(path.join(user.path, name), data);
-	
 }
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
-	console.log("new session: " + req.socket.remoteAddress);
+	console.log(`new session: ${req.socket.remoteAddress}`);
 
 	const proc = pty.spawn(shell, ["/k"], {
 		name: 'xterm-color',
@@ -50,10 +48,14 @@ wss.on('connection', (ws, req) => {
 		useConpty: false,	// windows: true: crash after proc.kill(), false: duplicated lines
 	});
 
+	const name = req.socket.remoteAddress.split(":")[3];
+
 	const user = {
 		"ws": ws, 
 		"proc": proc,
-		"path": path.join(users_folder, req.socket.remoteAddress.split(":")[3])
+		"path": path.join(users_folder, name),
+		"runner": undefined,
+		"name": name
 	};
 	users.push(user);
 
@@ -73,6 +75,12 @@ wss.on('connection', (ws, req) => {
 				case "run":
 					save_file(data.data, data.name, user);
 					run_python(data.name, user);
+					console.log(`${name} started file '${data.name}', pid: ${user.runner.proc.pid}`);
+					break;
+				case "stop":
+					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					user.runner.proc.kill();
+					user.runner = undefined;
 					break;
 			}
 		}
@@ -95,7 +103,7 @@ setInterval(() => {
 		const proc = user.proc;
 		if (ws.isAlive === false)
 		{
-			console.log("disconnected: " + ws._socket.remoteAddress);
+			console.log(`disconnected: ${ws._socket.remoteAddress}`);
 			ws.removeAllListeners();
 			ws.terminate();
 			proc.onData().dispose();
@@ -109,7 +117,7 @@ setInterval(() => {
 }, TIMEOUT);
 
 app.use("/public", express.static(path.resolve("./public")));
-app.use("/node_modules", express.static(path.resolve("./node_modules")));
+app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
 
 const index_page = path.resolve("./pages/index.html");
 
