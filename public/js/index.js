@@ -20,6 +20,8 @@ term.open(termDoc);
 
 function send_json(task, data)
 {
+	if(task == undefined) throw Error("no task was defined");
+	if(data == undefined) data = "";
 	socket.send("\x04" + JSON.stringify({"do": task, "data": data}));
 }
 
@@ -28,6 +30,27 @@ function resize(evt)
 	if(socket.readyState !== socket.OPEN) return;
 	const terminal_size = { "w": evt.cols, "h": evt.rows };
 	send_json("size", terminal_size);
+}
+
+function invert_button()
+{
+	runBut.hidden = stopBut.hidden;
+	stopBut.hidden = !stopBut.hidden;
+}
+
+function start()
+{
+	term.reset();
+	invert_button();
+	// ToDo remove hardcoded name
+	const file = { "data": editor.getValue(), "name": "main.py" };
+	send_json("run", file);
+}
+
+function stop()
+{
+	invert_button();
+	send_json("stop");
 }
 
 term.onResize(resize);
@@ -43,7 +66,11 @@ new ResizeObserver(entries => {
 term.onData(command => {
 	socket.send(command);
 });
-socket.onmessage = (e) => term.write(e.data);
+
+socket.onmessage = (e) => {
+	term.write(e.data);
+	if(e.data == "program ended") stop(false);
+}
 socket.onopen = (e) => resize(term);
 
 const editor = ace.edit("editor", {
@@ -65,13 +92,5 @@ const editor = ace.edit("editor", {
 editor.setTheme("ace/theme/monokai");
 editor.session.setMode("ace/mode/python");
 
-runBut.addEventListener("click", () => {
-	term.reset();
-	// ToDo remove hardcoded name
-	const file = { "data": editor.getValue(), "name": "main.py" };
-	send_json("run", file);
-});
-
-stopBut.addEventListener("click", () => {
-
-});
+runBut.addEventListener("click", start);
+stopBut.addEventListener("click", stop);
