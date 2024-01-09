@@ -78,6 +78,7 @@ wss.on('connection', (ws, req) => {
 					console.log(`${name} started file '${data.name}', pid: ${user.runner.proc.pid}`);
 					break;
 				case "stop":
+					if(user.runner == undefined) break;
 					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
 					user.runner.proc.kill();
 					user.runner = undefined;
@@ -101,6 +102,7 @@ setInterval(() => {
 		const user = users[i];
 		const ws = user.ws;
 		const proc = user.proc;
+		const runner = user.runner;
 		if (ws.isAlive === false)
 		{
 			console.log(`disconnected: ${ws._socket.remoteAddress}`);
@@ -108,6 +110,7 @@ setInterval(() => {
 			ws.terminate();
 			proc.onData().dispose();
 			proc.kill();
+			if(runner != undefined) runner.proc.kill();
 			users.splice(i, 1);
 			continue;
 		}
