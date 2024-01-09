@@ -1,0 +1,15 @@
+#run_button{
+	background-color: #449744;
+	color: white;
+}
+
+#stop_button{
+	background-color: #d9534f;
+	color: white;
+}
+
+button{
+	border: 1px solid #2b2b2b;
+	margin-bottom: 1px;
+	padding: 5px;
+}
