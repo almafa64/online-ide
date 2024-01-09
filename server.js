@@ -13,6 +13,9 @@ const WEB_PORT = 3001;
 const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
 const app = express();
 const users = [];
+const users_folder = path.resolve("./users");
+
+if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 function run_python(name, user) {
 	const child = spawn("python", [path.join(user.path, name)]);
@@ -44,13 +47,13 @@ wss.on('connection', (ws, req) => {
 		name: 'xterm-color',
 		cwd: process.cwd(),
 		env: process.env,
-		useConpty: true,	// windows: true: crash after proc.kill(), false: duplicated lines
+		useConpty: false,	// windows: true: crash after proc.kill(), false: duplicated lines
 	});
 
 	const user = {
 		"ws": ws, 
 		"proc": proc,
-		"path": path.resolve("./users/" + req.socket.remoteAddress.split(":")[3])
+		"path": path.join(users_folder, req.socket.remoteAddress.split(":")[3])
 	};
 	users.push(user);
 
