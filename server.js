@@ -11,6 +11,7 @@ const SOCKET_PORT = 3000;
 const WEB_PORT = 3001;
 
 const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
+const args = os.platform() === 'win32' ? ["/k"] : [];
 const app = express();
 const users = [];
 const users_folder = path.resolve("./users");
@@ -41,7 +42,7 @@ const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log(`new session: ${req.socket.remoteAddress}`);
 
-	const proc = pty.spawn(shell, ["/k"], {
+	const proc = pty.spawn(shell, args, {
 		name: 'xterm-color',
 		cwd: process.cwd(),
 		env: process.env,
