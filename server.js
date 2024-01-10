@@ -20,6 +20,7 @@ if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 function run_python(name, user) {
 	const child = spawn("python", [path.join(user.path, name)]);
+	child.stdin.setDefaultEncoding("utf8");
 	user.runner = { "proc": child, "file": name };
 	child.stdout.on("data", (data) => {
 		user.ws.send(data.toString());
@@ -42,11 +43,18 @@ const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log(`new session: ${req.socket.remoteAddress}`);
 
+	/*
+	useConpty
+		windows
+			true: crash after proc.kill(), false: duplicated lines after resize from narrow to wide
+		linux
+			works
+	*/
 	const proc = pty.spawn(shell, args, {
 		name: 'xterm-color',
 		cwd: process.cwd(),
 		env: process.env,
-		useConpty: false,	// windows: true: crash after proc.kill(), false: duplicated lines
+		useConpty: false,
 	});
 
 	const name = req.socket.remoteAddress.split(":")[3];
@@ -89,11 +97,11 @@ wss.on('connection', (ws, req) => {
 		else proc.write(command);
 	});
 
-	// ToDo proper input
-	/*proc.on('data', (data) => {
-		ws.send(data)
-		console.log(data.charCodeAt(0) + `\t- '${data}'`);
-	});*/
+	proc.on('data', (data) => {
+		if(user.runner == undefined) return;
+		ws.send(data);
+		user.runner.proc.stdin.write(data);
+	});
 })
 
 setInterval(() => {
