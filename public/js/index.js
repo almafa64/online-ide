@@ -11,6 +11,11 @@ const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT);
 
 const runBut = document.getElementById("run_button");
 const stopBut = document.getElementById("stop_button");
+const lang = document.getElementById("lang_selector");
+
+var files = [];
+var active_file = {};
+var doSave = false;
 
 term.loadAddon(fitAddon);
 term.attachCustomKeyEventHandler((e) => {
@@ -38,19 +43,47 @@ function invert_button()
 	stopBut.hidden = !stopBut.hidden;
 }
 
+function save()
+{
+	send_json("save", { "data": editor.getValue(), "path": active_file.path });
+}
+
 function start()
 {
 	term.reset();
 	invert_button();
-	// ToDo remove hardcoded name
-	const file = { "data": editor.getValue(), "name": "main.py" };
-	send_json("run", file);
+	save();
+	send_json("run", lang.value);
 }
 
 function stop()
 {
 	invert_button();
 	send_json("stop");
+}
+
+function newProject()
+{
+	switch(lang.value)
+	{
+		case "py":
+			active_file["name"] = "main.py";
+			editor.setValue('for i in range(10):\n\tprint(" " * i + str(i))');
+			break;
+		case "js":
+			active_file["name"] = "main.js";
+			break;
+		case "c":
+			active_file["name"] = "main.c";
+			break;
+		case "cpp":
+			active_file["name"] = "main.cpp";
+			break;
+	}
+	editor.clearSelection();
+	editor.session.getUndoManager().markClean();
+	active_file["path"] = active_file["name"];
+	files = [ active_file ];
 }
 
 term.onResize(resize);
@@ -94,3 +127,18 @@ editor.session.setMode("ace/mode/python");
 
 runBut.addEventListener("click", start);
 stopBut.addEventListener("click", stop);
+
+var last_lang_select = document.querySelector("#lang_selector option:checked");
+lang.addEventListener("change", e => {
+	if(!editor.session.getUndoManager().isClean() && !confirm("Did you save?"))
+	{
+		lang.value = last_lang_select.value;
+		return;
+	}
+	newProject(e);
+});
+lang.addEventListener("click", e => {
+	last_lang_select = document.querySelector("#lang_selector option:checked");
+});
+
+newProject();

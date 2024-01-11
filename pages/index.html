@@ -1,25 +1,31 @@
 <!doctype html>
 <html>
 	<head>
-		<link rel="stylesheet" href="@xterm/xterm/css/xterm.css" />
-		<script src="@xterm/xterm/lib/xterm.js"></script>
-		<script src="@xterm/addon-fit/lib/addon-fit.js"></script>
-		<link rel="stylesheet" href="public/css/index.css">
+		<link rel="stylesheet" href="/@xterm/xterm/css/xterm.css" />
+		<script src="/@xterm/xterm/lib/xterm.js"></script>
+		<script src="/@xterm/addon-fit/lib/addon-fit.js"></script>
+		<link rel="stylesheet" href="/public/css/index.css">
 	</head>
 	<body>
 		<div>
 			<button id="run_button">Run</button>
 			<button id="stop_button" hidden>Stop</button>
+			<label for="lang_selector">Language:</label>
+			<select name="lang" id="lang_selector">
+				<option value="py" selected>python</option>
+				<option value="js">javascript</option>
+				<option value="c">C</option>
+				<option value="cpp">C++</option>
+			</select>
 		</div>
 		<div>
 			<div id="editor" style="height: 50vh;"></div>
 			<div id="terminal" style="height: 100%;"></div>
 		</div>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.min.js" integrity="sha512-v4FCpndHUTAcQ0BeBMQMj7+JFXJYD2ABCX3wUcnWI18lKCr7DpqcaGXLUyooBbnCtTzLfsoXef40p3EaGHPRFQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/keybinding-vscode.min.js" integrity="sha512-sALdRE8skRaHi5dri3ejsaAQb1NCbkiBMSUI/IWJQYMzA7k/VvlJ5JLOX3n88OG2S+zEcqeJlaX7GZOeLXyYlQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.min.js" integrity="sha512-eRWzLr+TZSgJmSqTTyDBtddU86qtv/Bq2+ls4DdZAwok4KK2PAxkF0wXNe5AW4IjGSLtkicF7SPCVqi57emM4g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-emmet.min.js" integrity="sha512-3lADipRXib6VcyVdmfwWp6vIqvY7YY9tFtt8ynRTzNxZ38Or0xcrJpGaUzmR64UoV7Vf8Zvj0cu+nqytchBErw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-simple_tokenizer.min.js" integrity="sha512-2STQ3m/cObkD4F6wpSBa06eb7q7GS/DvzBzzQXF3t7AFhSXdVSmTcdyx4cnrmkLiOCHYkSboHwSrl/v3tzIq1w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-		<script src="public/js/index.js"></script>
+		<script src="/ace/src-min/ace.js"></script>
+		<script src="/ace/src-min/keybinding-vscode.js"></script>
+		<script src="/ace/src-min/ext-language_tools.js"></script>
+		<script src="/ace/src-min/ext-emmet.js"></script>
+		<script src="/public/js/index.js"></script>
 	</body>
 </html>

@@ -18,10 +18,10 @@ const users_folder = path.resolve("./users");
 
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
-function run_python(name, user) {
-	const child = spawn("python", [path.join(user.path, name)]);
+function run_python(user) {
+	const child = spawn("python", [path.join(user.path, "main.py")]);
 	child.stdin.setDefaultEncoding("utf8");
-	user.runner = { "proc": child, "file": name };
+	user.runner = { "proc": child, "file": "main.py" };
 	child.stdout.on("data", (data) => {
 		user.ws.send(data.toString());
 	});
@@ -33,10 +33,10 @@ function run_python(name, user) {
 	});
 }
 
-function save_file(data, name, user)
+function save_file(data, filePath, user)
 {
 	if(!fs.existsSync(user.path)) fs.mkdirSync(user.path);
-	fs.writeFileSync(path.join(user.path, name), data);
+	fs.writeFileSync(path.join(user.path, filePath), data);
 }
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
@@ -81,12 +81,19 @@ wss.on('connection', (ws, req) => {
 				case "size":
 					proc.resize(data.w, data.h);
 					break;
+				case "save":
+					save_file(data.data, data.path, user);
+					console.log(`${name} saved file '${data.path}'`);
+					break;
 				case "run":
-					save_file(data.data, data.name, user);
-					run_python(data.name, user);
-					console.log(`${name} started file '${data.name}', pid: ${user.runner.proc.pid}`);
+					// language = data
+					run_python(user);
+					// ToDo proper error handling
+					if(user.runner == undefined) break;
+					console.log(`${name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
 					break;
 				case "stop":
+					// ToDo proper error handling
 					if(user.runner == undefined) break;
 					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
 					user.runner.proc.kill();
@@ -130,6 +137,7 @@ setInterval(() => {
 
 app.use("/public", express.static(path.resolve("./public")));
 app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
+app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
 
 const index_page = path.resolve("./pages/index.html");
 
