@@ -6,7 +6,6 @@ const term = new Terminal({
 	cursorBlink: true,
 	convertEol: true,
 });
-const fitAddon = new FitAddon.FitAddon();
 const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT);
 
 const runBut = document.getElementById("run_button");
@@ -16,6 +15,9 @@ const lang = document.getElementById("lang_selector");
 var files = [];
 var active_file = {};
 var doSave = false;
+var running = false;
+
+const fitAddon = new FitAddon.FitAddon();
 
 term.loadAddon(fitAddon);
 term.attachCustomKeyEventHandler((e) => {
@@ -50,6 +52,8 @@ function save()
 
 function start()
 {
+	if(running) return;
+	running = true;
 	term.reset();
 	invert_button();
 	save();
@@ -58,6 +62,8 @@ function start()
 
 function stop()
 {
+	if(!running) return;
+	running = false;
 	invert_button();
 	send_json("stop");
 }
@@ -102,7 +108,7 @@ term.onData(command => {
 
 socket.onmessage = (e) => {
 	term.write(e.data);
-	if(e.data == "program ended") stop(false);
+	if(e.data == "program ended") stop();
 }
 socket.onopen = (e) => resize(term);
 
@@ -130,7 +136,7 @@ stopBut.addEventListener("click", stop);
 
 var last_lang_select = document.querySelector("#lang_selector option:checked");
 lang.addEventListener("change", e => {
-	if(!editor.session.getUndoManager().isClean() && !confirm("Did you save?"))
+	if(!editor.session.getUndoManager().isClean() && !confirm("This will make a new project and you have unsaved changes!\nDo you want to continue (saves will be discarded)?"))
 	{
 		lang.value = last_lang_select.value;
 		return;
