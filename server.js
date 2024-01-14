@@ -6,7 +6,7 @@ const WebSocket = require("ws");
 const fs = require("fs");
 const spawn = require("child_process").spawn;
 
-const TIMEOUT = 5000;
+const TIMEOUT = 1 * 60 * 1000;
 const SOCKET_PORT = 3000;
 const WEB_PORT = 3001;
 
@@ -19,8 +19,8 @@ const users_folder = path.resolve("./users");
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 function run_python(user) {
-	const child = spawn("python", [path.join(user.path, "main.py")]);
-	child.stdin.setDefaultEncoding("utf8");
+	/*const child = spawn("python", [path.join(user.path, "main.py")], { "cwd": user.path });
+	//child.stdin.setDefaultEncoding("utf8");
 	user.runner = { "proc": child, "file": "main.py" };
 	child.stdout.on("data", (data) => {
 		user.ws.send(data.toString());
@@ -30,7 +30,22 @@ function run_python(user) {
 	});
 	child.on("exit", () => {
 		user.ws.send("program ended");
+	});*/
+	const child = pty.spawn("python3.exe", [path.join(user.path, "main.py")], {
+		cwd: user.path,
+		env: process.env,
+		name: "xterm-color",
+		useConpty: false,
+		cols: user.proc.cols,
+		rows: user.proc.rows,
+	})
+	user.runner = { "proc": child, "file": "main.py" };
+	child.on("data", data => {
+		user.ws.send(data);
 	});
+	child.on("exit", () => {
+		user.ws.send("program ended");
+	})
 }
 
 function save_file(data, filePath, user)
@@ -43,29 +58,30 @@ const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log(`new session: ${req.socket.remoteAddress}`);
 
+	const name = req.socket.remoteAddress.split(":")[3];
+	const user = {
+		"ws": ws, 
+		"path": path.join(users_folder, name),
+		"runner": undefined,
+		"name": name
+	};
+
 	/*
 	useConpty
 		windows
-			true: crash after proc.kill(), false: duplicated lines after resize from narrow to wide
+			true: crash after proc.kill()
+			false: duplicated lines after resize from narrow to wide
 		linux
 			works
 	*/
 	const proc = pty.spawn(shell, args, {
 		name: 'xterm-color',
-		cwd: process.cwd(),
+		cwd: user.path,
 		env: process.env,
 		useConpty: false,
 	});
 
-	const name = req.socket.remoteAddress.split(":")[3];
-
-	const user = {
-		"ws": ws, 
-		"proc": proc,
-		"path": path.join(users_folder, name),
-		"runner": undefined,
-		"name": name
-	};
+	user["proc"] = proc;
 	users.push(user);
 
 	ws.isAlive = true;
@@ -80,6 +96,7 @@ wss.on('connection', (ws, req) => {
 			{
 				case "size":
 					proc.resize(data.w, data.h);
+					if(user.runner !== undefined) user.runner.proc.resize(data.w, data.h);
 					break;
 				case "save":
 					save_file(data.data, data.path, user);
@@ -96,18 +113,19 @@ wss.on('connection', (ws, req) => {
 					// ToDo proper error handling
 					if(user.runner == undefined) break;
 					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					user.runner.proc.onData().dispose();
+					user.runner.proc.onExit().dispose();
 					user.runner.proc.kill();
 					user.runner = undefined;
 					break;
 			}
 		}
+		else if(user.runner !== undefined) user.runner.proc.write(command);
 		else proc.write(command);
 	});
 
 	proc.on('data', (data) => {
-		if(user.runner == undefined) return;
 		ws.send(data);
-		user.runner.proc.stdin.write(data);
 	});
 })
 
