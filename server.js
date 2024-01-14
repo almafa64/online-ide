@@ -19,7 +19,7 @@ const users_folder = path.resolve("./users");
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 function run_python(user) {
-	/*const child = spawn("python", [path.join(user.path, "main.py")], { "cwd": user.path });
+	/*const child = spawn("python3", [path.join(user.path, "main.py")], { "cwd": user.path });
 	//child.stdin.setDefaultEncoding("utf8");
 	user.runner = { "proc": child, "file": "main.py" };
 	child.stdout.on("data", (data) => {
@@ -31,7 +31,7 @@ function run_python(user) {
 	child.on("exit", () => {
 		user.ws.send("program ended");
 	});*/
-	const child = pty.spawn("python3.exe", [path.join(user.path, "main.py")], {
+	const child = pty.spawn("python3", [path.join(user.path, "main.py")], {
 		cwd: user.path,
 		env: process.env,
 		name: "xterm-color",
