@@ -108,7 +108,7 @@ term.onData(command => {
 
 socket.onmessage = (e) => {
 	term.write(e.data);
-	if(e.data == "program ended") stop();
+	if(e.data == "\nprogram ended\n") stop();
 }
 socket.onopen = (e) => resize(term);
 

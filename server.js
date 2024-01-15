@@ -10,28 +10,23 @@ const TIMEOUT = 1 * 60 * 1000;
 const SOCKET_PORT = 3000;
 const WEB_PORT = 3001;
 
-const shell = process.env[os.platform() === 'win32' ? 'COMSPEC' : 'SHELL'];
-const args = os.platform() === 'win32' ? ["/k"] : [];
+const isWin = os.platform() === 'win32';
+const shell = process.env[isWin ? 'COMSPEC' : 'SHELL'];
+const args = isWin ? ["/k"] : [];
 const app = express();
 const users = [];
 const users_folder = path.resolve("./users");
 
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
+function get_program(program) { return isWin ? `${program}.exe` : program }
+
 function run_python(user) {
-	/*const child = spawn("python3", [path.join(user.path, "main.py")], { "cwd": user.path });
-	//child.stdin.setDefaultEncoding("utf8");
-	user.runner = { "proc": child, "file": "main.py" };
-	child.stdout.on("data", (data) => {
-		user.ws.send(data.toString());
-	});
-	child.stderr.on("data", (data) => {
-		user.ws.send(data.toString());
-	});
-	child.on("exit", () => {
-		user.ws.send("program ended");
-	});*/
-	const child = pty.spawn("python3", [path.join(user.path, "main.py")], {
+	/*
+		windows: no colors (until virtual terminal isn't enabled)
+		linux: works
+	*/
+	const child = pty.spawn(get_program("python"), [path.join(user.path, "main.py")], {
 		cwd: user.path,
 		env: process.env,
 		name: "xterm-color",
@@ -44,7 +39,8 @@ function run_python(user) {
 		user.ws.send(data);
 	});
 	child.on("exit", () => {
-		user.ws.send("program ended");
+		user.ws.send("\nprogram ended\n");
+		user.ws.send("Press ENTER to continue");
 	})
 }
 
@@ -95,8 +91,8 @@ wss.on('connection', (ws, req) => {
 			switch(json.do)
 			{
 				case "size":
-					proc.resize(data.w, data.h);
 					if(user.runner !== undefined) user.runner.proc.resize(data.w, data.h);
+					else proc.resize(data.w, data.h);
 					break;
 				case "save":
 					save_file(data.data, data.path, user);
@@ -113,8 +109,7 @@ wss.on('connection', (ws, req) => {
 					// ToDo proper error handling
 					if(user.runner == undefined) break;
 					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
-					user.runner.proc.onData().dispose();
-					user.runner.proc.onExit().dispose();
+					proc.resize(user.runner.proc.cols, user.runner.proc.rows);
 					user.runner.proc.kill();
 					user.runner = undefined;
 					break;
@@ -142,7 +137,6 @@ setInterval(() => {
 			console.log(`disconnected: ${ws._socket.remoteAddress}`);
 			ws.removeAllListeners();
 			ws.terminate();
-			proc.onData().dispose();
 			proc.kill();
 			if(runner != undefined) runner.proc.kill();
 			users.splice(i, 1);
