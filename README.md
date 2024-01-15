@@ -1,12 +1,19 @@
 # Online IDE
-version: 0.5.0
+version: 0.7.0
 
 ## External dependencies
 (Only for running/compiling programs)
-- Python - Python
-- NodeJs - js
+- Python (+pip) - Python
+- NodeJs (+npm) - js
 - GCC - C/C++
 - .NET - C#
+
+## Known bugs
+- Windows
+	- No colors in terminal -> By default windows terminal doesn't do any ANSI escapes so no colors will be displayed
+	- Repeated lines after resizing the browser from narrow to wide -> I have no clue
+- Linux
+	- It's just works
 
 ## History
 We had a school project that required online code sharing, writing and running, so we picked [online gdb](https://www.onlinegdb.com) and [replit](https://replit.com/).
