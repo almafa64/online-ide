@@ -75,9 +75,12 @@ function newProject()
 		case "py":
 			active_file["name"] = "main.py";
 			editor.setValue('for i in range(10):\n\tprint(" " * i + str(i))');
+			editor.session.setMode("ace/mode/python");
 			break;
 		case "js":
 			active_file["name"] = "main.js";
+			editor.setValue('for(var i = 0; i < 10; i++)\n{\n\tconsole.log(" ".repeat(i) + i)\n}');
+			editor.session.setMode("ace/mode/javascript");
 			break;
 		case "c":
 			active_file["name"] = "main.c";
@@ -133,8 +136,6 @@ const editor = ace.edit("editor", {
 	"enableLiveAutocompletion": true,
 	"enableSnippets": true,
 });
-editor.setTheme("ace/theme/monokai");
-editor.session.setMode("ace/mode/python");
 
 runBut.addEventListener("click", start);
 stopBut.addEventListener("click", stop);
