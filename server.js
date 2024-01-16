@@ -54,7 +54,7 @@ const users_folder = path.resolve("./users");
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
 /** @param {string} program - name of program*/
-function get_program(program) { return isWin ? `${program}.exe` : program; }
+function exe(program) { return isWin ? `${program}.exe` : program; }
 
 /**
  * @param {!User} user 
@@ -118,20 +118,10 @@ function get_config(user, lang)
  * @param {!string} cmd
  * @param {!string[]} args
  * @param {!Config} configs
+ * @param {?pty.IEvent<string>} onExit
  */
-function start_process(user, cmd, args, configs)
+function start_process(user, cmd, args, configs, onExit)
 {
-	if(configs.err != CONFIG_ERROR.NO)
-	{
-		switch(configs.err)
-		{
-			case CONFIG_ERROR.FILE_NOT_FOUND:
-				send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, MSG_LEVEL.ERROR);
-				break;
-		}
-		return;
-	}
-
 	/*
 		windows: no colors (until virtual terminal isn't enabled)
 		linux: works
@@ -148,15 +138,42 @@ function start_process(user, cmd, args, configs)
 	child.on("data", data => {
 		user.ws.send(data);
 	});
-	child.on("exit", () => {
-		send_message(user, "\nprogram ended\nPress ENTER to continue", MSG_LEVEL.MSG);
-	})
+	if(onExit === undefined)
+	{
+		child.on("exit", (e) => {
+			send_message(user, `\nprogram ended with exit code ${e < 2147483648 ? e : e - Math.pow(2, 32)}\nPress ENTER to continue`, MSG_LEVEL.MSG);
+		})
+	}
+	else child.on("exit", onExit);
 }
 
-/** @param {!User} user*/
-function run_python(user) {
-	const configs = get_config(user, "py");
-	start_process(user, get_program("python"), [get_user_file(user, configs.mainFile)], configs);
+/**
+ * @param {!User} user
+ * @param {!string} lang
+ */
+function run(user, lang) {
+	const configs = get_config(user, lang);
+	if(configs.err != CONFIG_ERROR.NO)
+	{
+		switch(configs.err)
+		{
+			case CONFIG_ERROR.FILE_NOT_FOUND:
+				send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, MSG_LEVEL.ERROR);
+				break;
+		}
+		return;
+	}
+
+	const mainFile = get_user_file(user, configs.mainFile);
+	switch(lang)
+	{
+		case "py": start_process(user, exe("python"), [mainFile], configs); return true;
+		case "js": start_process(user, exe("node"), [mainFile], configs); return true;
+//"gcc -Wall -Os -s -o main.exe " + fs.readdirSync(path.resolve("."), { recursive:true }).filter(f => path.extname(f).toLowerCase() == ".c").join(" ")
+		case "c": break;
+		case "cpp": break;
+	}
+	return false;
 }
 
 /**
@@ -220,11 +237,9 @@ wss.on('connection', (ws, req) => {
 					console.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
-					// language = data
-					run_python(user);
 					// ToDo proper error handling
-					if(user.runner == undefined) break;
-					console.log(`${name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					if(run(user, data)) console.log(`${name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					else console.log(`${name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`);
 					break;
 				case "stop":
 					// ToDo proper error handling
