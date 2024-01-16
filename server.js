@@ -5,6 +5,7 @@ const pty = require('node-pty');
 const WebSocket = require("ws");
 const fs = require("fs");
 const spawn = require("child_process").spawn;
+const docker = require('dockerode');
 
 const TIMEOUT = 1 * 60 * 1000;
 const SOCKET_PORT = 3000;
@@ -19,14 +20,70 @@ const users_folder = path.resolve("./users");
 
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
-function get_program(program) { return isWin ? `${program}.exe` : program }
+function get_program(program) { return isWin ? `${program}.exe` : program; }
+function get_user_file(user, filename) { return path.join(user.path, filename); }
+function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
+
+const LEVEL_INFO = "I";
+const LEVEL_WARNING = "W";
+const LEVEL_ERROR = "E";
+const LEVEL_MSG = "M";
+
+function send_message(user, msg, level)
+{
+	undefined_check(user, "user");
+	undefined_check(msg, "msg");
+	var newMsg = msg;
+	if(level !== undefined)
+	{
+		if(level === LEVEL_INFO) newMsg = "\x1b[39;49m";
+		else if(level === LEVEL_WARNING) newMsg = "\x1b[33;49m";
+		else if(level === LEVEL_ERROR) newMsg = "\x1b[31;49m";
+		else if(level === LEVEL_MSG) newMsg = "\x1b[32;49m";
+		newMsg += msg + "\x1b[0m\n";
+	}
+	user.ws.send("\x04" + newMsg);
+}
+
+function get_config(user, lang)
+{
+	// defaults
+	var mainFile = `main.${lang}`;
+	const configs = {
+		"mainFile": mainFile,
+		"err": -1
+	};
+
+	// .config file
+	const configPath = get_user_file(user, ".config.json");
+	if(fs.existsSync(configPath))
+	{
+		const configFile = fs.readFileSync(configPath, { encoding: "utf8" });
+		const json = JSON.parse(configFile);
+
+		if(json.mainFile && json.mainFile.length > 0 && path.resolve(get_user_file(user, json.mainFile)).length > user.path.length) configs.mainFile = json.mainFile;
+	}
+
+	if(!fs.existsSync(get_user_file(user, configs.mainFile))) configs.err = 0;
+
+	return configs;
+}
 
 function run_python(user) {
+	const configs = get_config(user, "py");
+	if(configs.err != -1)
+	{
+		switch(configs.err)
+		{
+			case 0: send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, LEVEL_ERROR); break;
+		}
+		return;
+	}
 	/*
 		windows: no colors (until virtual terminal isn't enabled)
 		linux: works
 	*/
-	const child = pty.spawn(get_program("python"), [path.join(user.path, "main.py")], {
+	const child = pty.spawn(get_program("python"), [get_user_file(user, configs.mainFile)], {
 		cwd: user.path,
 		env: process.env,
 		name: "xterm-color",
@@ -34,20 +91,19 @@ function run_python(user) {
 		cols: user.proc.cols,
 		rows: user.proc.rows,
 	})
-	user.runner = { "proc": child, "file": "main.py" };
+	user.runner = { "proc": child, "file": configs.mainFile };
 	child.on("data", data => {
 		user.ws.send(data);
 	});
 	child.on("exit", () => {
-		user.ws.send("\nprogram ended\n");
-		user.ws.send("Press ENTER to continue");
+		send_message(user, "\nprogram ended\nPress ENTER to continue", LEVEL_MSG);
 	})
 }
 
 function save_file(data, filePath, user)
 {
 	if(!fs.existsSync(user.path)) fs.mkdirSync(user.path);
-	fs.writeFileSync(path.join(user.path, filePath), data);
+	fs.writeFileSync(get_user_file(user, filePath), data);
 }
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });

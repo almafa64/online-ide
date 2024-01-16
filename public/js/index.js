@@ -107,8 +107,13 @@ term.onData(command => {
 });
 
 socket.onmessage = (e) => {
+	if(e.data.charCodeAt(0) == 4)
+	{
+		stop();
+		e.data = e.data.slice(1);
+	}
 	term.write(e.data);
-	if(e.data == "\nprogram ended\n") stop();
+	//if(e.data == "\nprogram ended\n") stop();
 }
 socket.onopen = (e) => resize(term);
 
