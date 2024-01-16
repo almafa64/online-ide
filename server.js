@@ -7,6 +7,39 @@ const fs = require("fs");
 const spawn = require("child_process").spawn;
 const docker = require('dockerode');
 
+const CONFIG_ERROR = {
+	NO: -1,
+	FILE_NOT_FOUND: 0,
+}
+
+const MSG_LEVEL = {
+	INFO: "I",
+	WARNING: "W",
+	ERROR: "E",
+	MSG: "M"
+}
+
+/**
+ * @typedef {Object} Runner
+ * @property {pty.IPty} proc - pty for interacting with running program
+ * @property {string} file - name of the main file
+ */
+
+/**
+ * @typedef {Object} User
+ * @property {WebSocket} ws - websocket of user
+ * @property {string} path - path to user home
+ * @property {string} name - name of user
+ * @property {pty.IPty} proc - normal pty terminal for interaction
+ * @property {Runner} runner - running program data
+ */
+
+/**
+ * @typedef {Object} Config
+ * @property {string} mainFile
+ * @property {CONFIG_ERROR} err
+ */
+
 const TIMEOUT = 1 * 60 * 1000;
 const SOCKET_PORT = 3000;
 const WEB_PORT = 3001;
@@ -20,38 +53,49 @@ const users_folder = path.resolve("./users");
 
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 
+/** @param {string} program - name of program*/
 function get_program(program) { return isWin ? `${program}.exe` : program; }
+
+/**
+ * @param {!User} user 
+ * @param {!string} filename
+ * @returns {string}
+ */
 function get_user_file(user, filename) { return path.join(user.path, filename); }
-function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
+//function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
-const LEVEL_INFO = "I";
-const LEVEL_WARNING = "W";
-const LEVEL_ERROR = "E";
-const LEVEL_MSG = "M";
-
+/**
+ * 
+ * @param {!User} user 
+ * @param {!string} msg 
+ * @param {MSG_LEVEL|undefined} level 
+ */
 function send_message(user, msg, level)
 {
-	undefined_check(user, "user");
-	undefined_check(msg, "msg");
 	var newMsg = msg;
 	if(level !== undefined)
 	{
-		if(level === LEVEL_INFO) newMsg = "\x1b[39;49m";
-		else if(level === LEVEL_WARNING) newMsg = "\x1b[33;49m";
-		else if(level === LEVEL_ERROR) newMsg = "\x1b[31;49m";
-		else if(level === LEVEL_MSG) newMsg = "\x1b[32;49m";
+		if(level === MSG_LEVEL.INFO) newMsg = "\x1b[39;49m";
+		else if(level === MSG_LEVEL.WARNING) newMsg = "\x1b[33;49m";
+		else if(level === MSG_LEVEL.ERROR) newMsg = "\x1b[31;49m";
+		else if(level === MSG_LEVEL.MSG) newMsg = "\x1b[32;49m";
 		newMsg += msg + "\x1b[0m\n";
 	}
 	user.ws.send("\x04" + newMsg);
 }
 
+/**
+ * @param {!User} user
+ * @param {!string} lang
+ * @returns {Config}
+ */
 function get_config(user, lang)
 {
 	// defaults
 	var mainFile = `main.${lang}`;
 	const configs = {
 		"mainFile": mainFile,
-		"err": -1
+		"err": CONFIG_ERROR.NO,
 	};
 
 	// .config file
@@ -64,26 +108,35 @@ function get_config(user, lang)
 		if(json.mainFile && json.mainFile.length > 0 && path.resolve(get_user_file(user, json.mainFile)).length > user.path.length) configs.mainFile = json.mainFile;
 	}
 
-	if(!fs.existsSync(get_user_file(user, configs.mainFile))) configs.err = 0;
+	if(!fs.existsSync(get_user_file(user, configs.mainFile))) configs.err = CONFIG_ERROR.FILE_NOT_FOUND;
 
 	return configs;
 }
 
-function run_python(user) {
-	const configs = get_config(user, "py");
-	if(configs.err != -1)
+/**
+ * @param {!User} user
+ * @param {!string} cmd
+ * @param {!string[]} args
+ * @param {!Config} configs
+ */
+function start_process(user, cmd, args, configs)
+{
+	if(configs.err != CONFIG_ERROR.NO)
 	{
 		switch(configs.err)
 		{
-			case 0: send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, LEVEL_ERROR); break;
+			case CONFIG_ERROR.FILE_NOT_FOUND:
+				send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, MSG_LEVEL.ERROR);
+				break;
 		}
 		return;
 	}
+
 	/*
 		windows: no colors (until virtual terminal isn't enabled)
 		linux: works
 	*/
-	const child = pty.spawn(get_program("python"), [get_user_file(user, configs.mainFile)], {
+	const child = pty.spawn(cmd, args, {
 		cwd: user.path,
 		env: process.env,
 		name: "xterm-color",
@@ -96,10 +149,21 @@ function run_python(user) {
 		user.ws.send(data);
 	});
 	child.on("exit", () => {
-		send_message(user, "\nprogram ended\nPress ENTER to continue", LEVEL_MSG);
+		send_message(user, "\nprogram ended\nPress ENTER to continue", MSG_LEVEL.MSG);
 	})
 }
 
+/** @param {!User} user*/
+function run_python(user) {
+	const configs = get_config(user, "py");
+	start_process(user, get_program("python"), [get_user_file(user, configs.mainFile)], configs);
+}
+
+/**
+ * @param {!string} data - data to save
+ * @param {!string} filePath - where to save
+ * @param {!User} user
+ */
 function save_file(data, filePath, user)
 {
 	if(!fs.existsSync(user.path)) fs.mkdirSync(user.path);
@@ -115,7 +179,8 @@ wss.on('connection', (ws, req) => {
 		"ws": ws, 
 		"path": path.join(users_folder, name),
 		"runner": undefined,
-		"name": name
+		"name": name,
+		"proc": undefined
 	};
 
 	/*
