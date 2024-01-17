@@ -1,37 +1,48 @@
 <!doctype html>
-<html>
+<html lang="en">
 	<head>
-		<link rel="stylesheet" href="/@xterm/xterm/css/xterm.css" />
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<script src="/@xterm/xterm/lib/xterm.js"></script>
+		<script src="/@xterm/lib/xterm.js"></script>
 		<script src="/@xterm/addon-fit/lib/addon-fit.js"></script>
 
 		<script src="/ace/src-min/ace.js"></script>
 		<script src="/ace/src-min/keybinding-vscode.js"></script>
 		<script src="/ace/src-min/ext-language_tools.js"></script>
-		<script src="/ace/src-min/ext-emmet.js"></script>
+		<script src="/ace/src-min/ext-inline_autocomplete.js"></script>
+		<!--<script src="/ace/src-min/ext-options.js"></script>-->
+		<script src="/ace/src-min/ext-settings_menu.js"></script>
 		<script src="/ace/src-min/mode-javascript.js"></script>
 		<script src="/ace/src-min/mode-python.js"></script>
+		<script src="/ace/src-min/mode-c_cpp.js"></script>
 		<script src="/ace/src-min/snippets/javascript.js"></script>
 		<script src="/ace/src-min/snippets/python.js"></script>
+		<script src="/ace/src-min/snippets/c_cpp.js"></script>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.5/split.min.js" integrity="sha512-lNjb0qWDVvt1zfSiXufaxtlFtenve3BLbvljxuMXuSr0DE0HYp5OhX0u89uwNd6MvlX1bgJ8ulfG4JMGurs8UA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+		<link rel="stylesheet" href="/@xterm/css/xterm.css" />
 
 		<link rel="stylesheet" href="/public/css/index.css">
 	</head>
 	<body>
-		<div>
-			<button id="run_button">Run</button>
-			<button id="stop_button" hidden>Stop</button>
-			<label for="lang_selector">Language:</label>
-			<select name="lang" id="lang_selector">
-				<option value="py" selected>python</option>
-				<option value="js">javascript</option>
-				<option value="c">C</option>
-				<option value="cpp">C++</option>
-			</select>
-		</div>
-		<div>
-			<div id="editor" style="height: 50vh;"></div>
-			<div id="terminal" style="height: 100%;"></div>
+		<div class="notranslate">
+			<div id="taskbar">
+				<button id="run_button">Run</button>
+				<button id="stop_button" hidden>Stop</button>
+				<label for="lang_selector">Language:</label>
+				<select name="lang" id="lang_selector">
+					<option value="py" selected>python</option>
+					<option value="js">javascript</option>
+					<option value="c">C</option>
+					<option value="cpp">C++</option>
+				</select>
+			</div>
+			<div class="split">
+				<div id="editor"></div>
+				<div id="terminal"></div>
+			</div>
 		</div>
 		<script src="/public/js/index.js"></script>
 	</body>

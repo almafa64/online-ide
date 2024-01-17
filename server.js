@@ -48,6 +48,7 @@ const isWin = os.platform() === 'win32';
 const shell = process.env[isWin ? 'COMSPEC' : 'SHELL'];
 const args = isWin ? ["/k"] : [];
 const app = express();
+/** @type {User[]} */
 const users = [];
 const users_folder = path.resolve("./users");
 
@@ -119,6 +120,7 @@ function get_config(user, lang)
  * @param {!string[]} args
  * @param {!Config} configs
  * @param {?pty.IEvent<string>} onExit
+ * @returns {boolean} true if successfully started, false otherwise
  */
 function start_process(user, cmd, args, configs, onExit)
 {
@@ -145,11 +147,13 @@ function start_process(user, cmd, args, configs, onExit)
 		})
 	}
 	else child.on("exit", onExit);
+	return child.pid != -1;
 }
 
 /**
  * @param {!User} user
  * @param {!string} lang
+ * @returns {boolean} true if started the executable, false otherwise
  */
 function run(user, lang) {
 	const configs = get_config(user, lang);
@@ -284,6 +288,7 @@ setInterval(() => {
 }, TIMEOUT);
 
 app.use("/public", express.static(path.resolve("./public")));
+app.use("/@xterm", express.static(path.resolve("./node_modules/xterm")));
 app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
 app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
 

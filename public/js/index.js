@@ -70,26 +70,31 @@ function stop()
 
 function newProject()
 {
+	function setValue(data) { editor.setValue(data, -1); }
+
 	switch(lang.value)
 	{
 		case "py":
 			active_file["name"] = "main.py";
-			editor.setValue('for i in range(10):\n\tprint(" " * i + str(i))');
+			setValue('for i in range(10):\n\tprint(" " * i + str(i))');
 			editor.session.setMode("ace/mode/python");
 			break;
 		case "js":
 			active_file["name"] = "main.js";
-			editor.setValue('for(var i = 0; i < 10; i++)\n{\n\tconsole.log(" ".repeat(i) + i)\n}');
+			setValue('for(var i = 0; i < 10; i++)\n{\n\tconsole.log(" ".repeat(i) + i);\n}');
 			editor.session.setMode("ace/mode/javascript");
 			break;
 		case "c":
 			active_file["name"] = "main.c";
+			setValue('#include <stdio.h>\n\nint main(int argc, char *argv [])\n{\n\tfor(int i = 0; i < 10; i++)\n\t{\n\t\tfor(int k = 0; k < i; k++)\n\t\t{\n\t\t\tprintf(" ");\n\t\t}\n\t\tprintf("%i\\n", i);\n\t}\n\treturn 0;\n}');
+			editor.session.setMode("ace/mode/c_cpp");
 			break;
 		case "cpp":
 			active_file["name"] = "main.cpp";
+			setValue("#include <iostream>\n\nusing namespace std;\n\nint main(int argc, char *argv [])\n{\n\tfor(int i = 0; i < 10; i++)\n\t{\n\t\tstring a(i, ' ');\n\t\tcout << a << i << endl;\n\t}\n\treturn 0;\n}");
+			editor.session.setMode("ace/mode/c_cpp");
 			break;
 	}
-	editor.clearSelection();
 	editor.session.getUndoManager().markClean();
 	active_file["path"] = active_file["name"];
 	files = [ active_file ];
@@ -131,11 +136,17 @@ const editor = ace.edit("editor", {
 	"useSvgGutterIcons": true,
 	"useSoftTabs": false,
 	"tabSize": 4,
-	"enableEmmet": true,
 	"enableBasicAutocompletion": true,
 	"enableLiveAutocompletion": true,
+	"enableInlineAutocompletion": true,
 	"enableSnippets": true,
 });
+/*
+ace.require("ace/ext/language_tools");
+ace.require("ace/ext/inline_autocomplete");
+ace.require("ace/ext/options")
+*/
+ace.require("ace/ext/settings_menu").init();
 
 runBut.addEventListener("click", start);
 stopBut.addEventListener("click", stop);
@@ -154,3 +165,18 @@ lang.addEventListener("click", e => {
 });
 
 newProject();
+
+window.onkeydown = (e) => {
+	if(e.ctrlKey && e.keyCode == ('S').charCodeAt(0)) 
+	{
+		e.preventDefault();
+		save();
+	}
+}
+
+const split = new Split(['#editor', '#terminal'], {
+    direction: 'vertical',
+    minSize: 20,
+    snapOffset: 0,
+	sizes: [50, 50]
+});
