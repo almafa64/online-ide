@@ -1,3 +1,5 @@
+'use strict';
+
 const express = require("express");
 const path = require("path");
 const os = require('os');
@@ -66,6 +68,17 @@ function get_user_file(user, filename) { return path.join(user.path, filename); 
 //function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
 /**
+ * @param {User} user
+ * @param {*} task name of task
+ * @param {*} data
+ */
+function send_json(user, task, data)
+{
+	const toSend = (data === undefined) ? { "do": task } : { "do": task, "data": data };
+	user.ws.send("\x04" + JSON.stringify(toSend));
+}
+
+/**
  * @param {!User} user
  * @param {!string} msg
  * @param {MSG_LEVEL|undefined} level
@@ -81,7 +94,7 @@ function send_message(user, msg, level)
 		else if(level === MSG_LEVEL.MSG) newMsg = "\x1b[32;49m";
 		newMsg += msg + "\x1b[0m\n";
 	}
-	user.ws.send("\x04" + newMsg);
+	send_json(user, "msg", newMsg);
 }
 
 /**
@@ -149,6 +162,7 @@ function start_process(user, cmd, args, configs, onExit)
 	if(onExit === undefined)
 	{
 		child.on("exit", (e) => {
+			if(e === undefined) e = 0;
 			send_message(user, `\nprogram ended with exit code ${e < 2147483648 ? e : e - Math.pow(2, 32)}\nPress ENTER to continue`, MSG_LEVEL.MSG);
 		})
 	}
@@ -264,7 +278,7 @@ wss.on('connection', (ws, req) => {
 					else proc.resize(data.w, data.h);
 					break;
 				case "save":
-					fs.writeFileSync(get_user_file(user, data.path), data.data);
+					fs.writeFile(get_user_file(user, data.path), data.data, {encoding: "utf8"}, () => send_json(user, "saveconf"));
 					console.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":

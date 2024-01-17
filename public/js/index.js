@@ -1,3 +1,5 @@
+'use strict';
+
 const WS_SERVER_IP = location.hostname;
 const WS_SERVER_PORT = "3000";
 
@@ -27,9 +29,8 @@ term.open(termDoc);
 
 function send_json(task, data)
 {
-	if(task == undefined) throw Error("no task was defined");
-	if(data == undefined) data = "";
-	socket.send("\x04" + JSON.stringify({"do": task, "data": data}));
+	const toSend = (data === undefined) ? { "do": task } : { "do": task, "data": data };
+	socket.send("\x04" + JSON.stringify(toSend));
 }
 
 function resize(evt)
@@ -57,7 +58,6 @@ function start()
 	term.reset();
 	invert_button();
 	save();
-	send_json("run", lang.value);
 }
 
 function stop()
@@ -115,13 +115,17 @@ term.onData(command => {
 });
 
 socket.onmessage = (e) => {
+	var data = e.data;
 	if(e.data.charCodeAt(0) == 4)
 	{
-		stop();
-		e.data = e.data.slice(1);
+		const json = JSON.parse(e.data.slice(1));
+		switch(json.do)
+		{
+			case "msg": stop(); data = json.data; break;
+			case "saveconf": send_json("run", lang.value); return;
+		}
 	}
-	term.write(e.data);
-	//if(e.data == "\nprogram ended\n") stop();
+	term.write(data);
 }
 socket.onopen = (e) => resize(term);
 
