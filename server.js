@@ -58,7 +58,7 @@ if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
 function exe(program) { return isWin ? `${program}.exe` : program; }
 
 /**
- * @param {!User} user 
+ * @param {!User} user
  * @param {!string} filename
  * @returns {string}
  */
@@ -66,10 +66,9 @@ function get_user_file(user, filename) { return path.join(user.path, filename); 
 //function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
 /**
- * 
- * @param {!User} user 
- * @param {!string} msg 
- * @param {MSG_LEVEL|undefined} level 
+ * @param {!User} user
+ * @param {!string} msg
+ * @param {MSG_LEVEL|undefined} level
  */
 function send_message(user, msg, level)
 {
@@ -223,13 +222,13 @@ wss.on('connection', (ws, req) => {
 	var name = req.socket.remoteAddress;
 	name = name.slice(name.lastIndexOf(":")+1);
 	const user = {
-		"ws": ws, 
+		"ws": ws,
 		"path": path.join(users_folder, name),
 		"runner": undefined,
 		"name": name,
 		"proc": undefined
 	};
-	
+
 	fs.mkdir(user.path, ()=>{});
 
 	/*
@@ -265,7 +264,7 @@ wss.on('connection', (ws, req) => {
 					else proc.resize(data.w, data.h);
 					break;
 				case "save":
-					fs.writeFileSync(get_user_file(user, filePath), data);
+					fs.writeFileSync(get_user_file(user, data.path), data.data);
 					console.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
