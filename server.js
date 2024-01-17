@@ -114,6 +114,13 @@ function get_config(user, lang)
 	return configs;
 }
 
+/** @param {!User} user */
+function log_start(user) { console.log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+/** @param {!User} user */
+function log_stop(user) { console.log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+/** @param {!User} user */
+function log_compile(user) { console.log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+
 /**
  * @param {!User} user
  * @param {!string} cmd
@@ -152,6 +159,24 @@ function start_process(user, cmd, args, configs, onExit)
 
 /**
  * @param {!User} user
+ * @param {!string} cmd
+ * @param {!string[]} args
+ * @param {!Config} configs
+ * @returns {boolean} true if successfully started, false otherwise
+ */
+function compile_process(user, cmd, args, configs)
+{
+	return start_process(user, cmd, args, configs, (e) => {
+		if(e == "0")
+		{
+			configs.mainFile = exe("main");
+			if(start_process(user, get_user_file(user, configs.mainFile), [], configs)) log_start(user);
+		}
+	});
+}
+
+/**
+ * @param {!User} user
  * @param {!string} lang
  * @returns {boolean} true if started the executable, false otherwise
  */
@@ -173,29 +198,30 @@ function run(user, lang) {
 	{
 		case "py": start_process(user, exe("python"), [mainFile], configs); return true;
 		case "js": start_process(user, exe("node"), [mainFile], configs); return true;
-//"gcc -Wall -Os -s -o main.exe " + fs.readdirSync(path.resolve("."), { recursive:true }).filter(f => path.extname(f).toLowerCase() == ".c").join(" ")
-		case "c": break;
-		case "cpp": break;
+		case "c":
+			fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
+				var c_files = files.filter(f => path.extname(f).toLowerCase() == ".c");
+				compile_process(user, exe("gcc"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(c_files), configs);
+			});
+			break;
+		case "cpp":
+			fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
+				var cpp_files = files.filter(f => path.extname(f).toLowerCase() == ".cpp");
+				compile_process(user, exe("g++"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(cpp_files), configs);
+			});
+			break;
+		default: send_message(user, `Language '${lang}' is not supported`, MSG_LEVEL.ERROR);
 	}
 	return false;
-}
-
-/**
- * @param {!string} data - data to save
- * @param {!string} filePath - where to save
- * @param {!User} user
- */
-function save_file(data, filePath, user)
-{
-	if(!fs.existsSync(user.path)) fs.mkdirSync(user.path);
-	fs.writeFileSync(get_user_file(user, filePath), data);
 }
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log(`new session: ${req.socket.remoteAddress}`);
 
-	const name = req.socket.remoteAddress.split(":")[3];
+	// ToDo name -> hash/id
+	var name = req.socket.remoteAddress;
+	name = name.slice(name.lastIndexOf(":")+1);
 	const user = {
 		"ws": ws, 
 		"path": path.join(users_folder, name),
@@ -203,6 +229,8 @@ wss.on('connection', (ws, req) => {
 		"name": name,
 		"proc": undefined
 	};
+	
+	fs.mkdir(user.path, ()=>{});
 
 	/*
 	useConpty
@@ -237,18 +265,18 @@ wss.on('connection', (ws, req) => {
 					else proc.resize(data.w, data.h);
 					break;
 				case "save":
-					save_file(data.data, data.path, user);
+					fs.writeFileSync(get_user_file(user, filePath), data);
 					console.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
 					// ToDo proper error handling
-					if(run(user, data)) console.log(`${name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
-					else console.log(`${name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					if(run(user, data)) log_start(user);
+					else log_compile(user);
 					break;
 				case "stop":
 					// ToDo proper error handling
 					if(user.runner == undefined) break;
-					console.log(`${name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`);
+					log_stop(user);
 					proc.resize(user.runner.proc.cols, user.runner.proc.rows);
 					user.runner.proc.kill();
 					user.runner = undefined;
