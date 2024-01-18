@@ -200,6 +200,7 @@ function compile_process(user, cmd, args, configs)
 		if(e == "0")
 		{
 			configs.mainFile = exe("main");
+			user.runner.proc.kill();
 			if(start_process(user, get_user_file(user, configs.mainFile), [], configs)) log_start(user);
 		}
 	});
