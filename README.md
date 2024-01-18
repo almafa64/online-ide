@@ -1,12 +1,11 @@
 # Online IDE
-version: 0.7.0
+version: 0.8.0
 
 ## External dependencies
 (Only for running/compiling programs)
 - Python (+pip) - Python
 - NodeJs (+npm) - js
 - GCC - C/C++
-- .NET - C#
 
 ## Known bugs
 - Windows
