@@ -9,16 +9,25 @@ const fs = require("fs");
 const spawn = require("child_process").spawn;
 const docker = require('dockerode');
 
+/** @enum {number}*/
 const CONFIG_ERROR = {
 	NO: -1,
 	FILE_NOT_FOUND: 0,
 }
 
+/** @enum {string}*/
 const MSG_LEVEL = {
 	INFO: "I",
 	WARNING: "W",
 	ERROR: "E",
 	MSG: "M"
+}
+
+/** @enum {number}*/
+const RUN_RETURN = {
+	ERROR: -1,
+	RUN: 0,
+	COMPILE: 1,
 }
 
 /**
@@ -100,9 +109,9 @@ function send_message(user, msg, level)
 /**
  * @param {!User} user
  * @param {!string} lang
- * @returns {Config}
+ * @returns {Promise<Config>}
  */
-function get_config(user, lang)
+function get_config_async(user, lang)
 {
 	// defaults
 	var mainFile = `main.${lang}`;
@@ -113,17 +122,25 @@ function get_config(user, lang)
 
 	// .config file
 	const configPath = get_user_file(user, ".config.json");
-	if(fs.existsSync(configPath))
-	{
-		const configFile = fs.readFileSync(configPath, { encoding: "utf8" });
-		const json = JSON.parse(configFile);
-
-		if(json.mainFile && json.mainFile.length > 0 && path.resolve(get_user_file(user, json.mainFile)).length > user.path.length) configs.mainFile = json.mainFile;
-	}
-
-	if(!fs.existsSync(get_user_file(user, configs.mainFile))) configs.err = CONFIG_ERROR.FILE_NOT_FOUND;
-
-	return configs;
+	return new Promise((res, rej) => {
+		fs.readFile(configPath, {encoding: "utf8"}, (err, data) => {
+			if(err === undefined)
+			{
+				const json = JSON.parse(data);
+				if(json.mainFile && json.mainFile.length > 0 && path.resolve(get_user_file(user, json.mainFile)).length > user.path.length)
+				{
+					configs.mainFile = json.mainFile;
+				}
+			}
+			
+			if(!fs.existsSync(get_user_file(user, configs.mainFile)))
+			{
+				configs.err = CONFIG_ERROR.FILE_NOT_FOUND;
+				rej(configs);
+			}
+			else res(configs);
+		});
+	});
 }
 
 /** @param {!User} user */
@@ -191,41 +208,40 @@ function compile_process(user, cmd, args, configs)
 /**
  * @param {!User} user
  * @param {!string} lang
- * @returns {boolean} true if started the executable, false otherwise
+ * @returns {Promise<RUN_RETURN>}
  */
 function run(user, lang) {
-	const configs = get_config(user, lang);
-	if(configs.err != CONFIG_ERROR.NO)
-	{
-		switch(configs.err)
-		{
-			case CONFIG_ERROR.FILE_NOT_FOUND:
-				send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, MSG_LEVEL.ERROR);
-				break;
-		}
-		return;
-	}
-
-	const mainFile = get_user_file(user, configs.mainFile);
-	switch(lang)
-	{
-		case "py": start_process(user, exe("python"), [mainFile], configs); return true;
-		case "js": start_process(user, exe("node"), [mainFile], configs); return true;
-		case "c":
-			fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
-				var c_files = files.filter(f => path.extname(f).toLowerCase() == ".c");
-				compile_process(user, exe("gcc"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(c_files), configs);
-			});
-			break;
-		case "cpp":
-			fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
-				var cpp_files = files.filter(f => path.extname(f).toLowerCase() == ".cpp");
-				compile_process(user, exe("g++"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(cpp_files), configs);
-			});
-			break;
-		default: send_message(user, `Language '${lang}' is not supported`, MSG_LEVEL.ERROR);
-	}
-	return false;
+	return new Promise((res, rej) => {
+		get_config_async(user, lang).then(configs => {	
+			const mainFile = get_user_file(user, configs.mainFile);
+			switch(lang)
+			{
+				case "py": start_process(user, exe("python"), [mainFile], configs); return res(RUN_RETURN.RUN);
+				case "js": start_process(user, exe("node"), [mainFile], configs); return res(RUN_RETURN.RUN);
+				case "c":
+					fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
+						var c_files = files.filter(f => path.extname(f).toLowerCase() == ".c");
+						compile_process(user, exe("gcc"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(c_files), configs);
+					});
+					return res(RUN_RETURN.COMPILE);
+				case "cpp":
+					fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
+						var cpp_files = files.filter(f => path.extname(f).toLowerCase() == ".cpp");
+						compile_process(user, exe("g++"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(cpp_files), configs);
+					});
+					return res(RUN_RETURN.COMPILE);
+				default: send_message(user, `Language '${lang}' is not supported`, MSG_LEVEL.ERROR); return rej(RUN_RETURN.ERROR);
+			}
+		}).catch(configs => {
+			switch(configs.err)
+			{
+				case CONFIG_ERROR.FILE_NOT_FOUND:
+					send_message(user, `Error main file '${configs.mainFile}' doesn't exists`, MSG_LEVEL.ERROR);
+					break;
+			}
+			return rej(RUN_RETURN.ERROR);
+		});
+	});
 }
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
@@ -282,9 +298,10 @@ wss.on('connection', (ws, req) => {
 					console.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
-					// ToDo proper error handling
-					if(run(user, data)) log_start(user);
-					else log_compile(user);
+					run(user, data).then(ret => {
+						if(ret == RUN_RETURN.RUN) log_start(user);
+						else log_compile(user);
+					});
 					break;
 				case "stop":
 					// ToDo proper error handling
