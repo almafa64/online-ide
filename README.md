@@ -1,6 +1,11 @@
 # Online IDE
 version: 0.8.0
 
+## Setup
+1. npm install
+2. docker build . -f docker/Dockerfile -t online-ide-ubuntu
+3. node server.js
+
 ## External dependencies
 (Only for running/compiling programs)
 - Python (+pip) - Python
