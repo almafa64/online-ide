@@ -351,10 +351,31 @@ app.use("/@xterm", express.static(path.resolve("./node_modules/xterm")));
 app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
 app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
 
-const index_page = path.resolve("./pages/index.html");
+app.set('view engine','ejs');
+app.engine('html', require('ejs').renderFile);
+app.set('views', path.resolve("./pages"));
 
-app.get("/", (req, res) => {
-	res.sendFile(index_page);
+app.get("/:lang", (req, res) => {
+	var lang = req.params.lang;
+	switch(lang)
+	{
+		case "javascript":
+		case "js":
+			lang = "js";
+			break;
+		case "python":
+		case "py":
+			lang = "py";
+			break;
+		case "cpp":
+			lang = "cpp";
+			break
+		case "c":
+			lang = "c";
+			break;
+	}
+	res.render("index", {"lang": lang});
 });
+app.get("/", (req, res) => res.redirect("/python"));
 
 app.listen(WEB_PORT, console.log("started"));

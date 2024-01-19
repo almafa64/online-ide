@@ -179,8 +179,8 @@ window.onkeydown = (e) => {
 }
 
 const split = new Split(['#editor', '#terminal'], {
-    direction: 'vertical',
-    minSize: 20,
-    snapOffset: 0,
+	direction: 'vertical',
+	minSize: 20,
+	snapOffset: 0,
 	sizes: [50, 50]
 });

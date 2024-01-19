@@ -13,12 +13,6 @@
 		<script src="/ace/src-min/ext-inline_autocomplete.js"></script>
 		<!--<script src="/ace/src-min/ext-options.js"></script>-->
 		<script src="/ace/src-min/ext-settings_menu.js"></script>
-		<script src="/ace/src-min/mode-javascript.js"></script>
-		<script src="/ace/src-min/mode-python.js"></script>
-		<script src="/ace/src-min/mode-c_cpp.js"></script>
-		<script src="/ace/src-min/snippets/javascript.js"></script>
-		<script src="/ace/src-min/snippets/python.js"></script>
-		<script src="/ace/src-min/snippets/c_cpp.js"></script>
 
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.5/split.min.js" integrity="sha512-lNjb0qWDVvt1zfSiXufaxtlFtenve3BLbvljxuMXuSr0DE0HYp5OhX0u89uwNd6MvlX1bgJ8ulfG4JMGurs8UA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
@@ -33,10 +27,22 @@
 				<button id="stop_button" hidden>Stop</button>
 				<label for="lang_selector">Language:</label>
 				<select name="lang" id="lang_selector">
-					<option value="py" selected>python</option>
-					<option value="js">javascript</option>
-					<option value="c">C</option>
-					<option value="cpp">C++</option>
+				<%
+					var options = [
+						{"name": "python", "value": "py"},
+						{"name": "javascript", "value": "js"},
+						{"name": "c", "value": "c"},
+						{"name": "c++", "value": "cpp"}
+					];
+					for ( var i = 0; i < options.length; i++ )
+					{
+						var option = options[i];
+						var selected = ( lang == option.value ) ? "selected" : "";
+				%>
+						<option value="<%=option.value%>" <%=selected%>><%=option.name%></option>
+				<%
+					}
+				%>
 				</select>
 			</div>
 			<div class="split">
