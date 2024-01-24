@@ -48,16 +48,17 @@ function invert_button()
 
 function save()
 {
+	if(running) return;
 	send_json("save", { "data": editor.getValue(), "path": active_file.path });
 }
 
 function start()
 {
 	if(running) return;
+	save();
 	running = true;
 	term.reset();
 	invert_button();
-	save();
 }
 
 function stop()
@@ -122,7 +123,7 @@ socket.onmessage = (e) => {
 		switch(json.do)
 		{
 			case "msg": stop(); data = json.data; break;
-			case "saveconf": send_json("run", lang.value); return;
+			case "saveconf": if(running) send_json("run", lang.value); return;
 		}
 	}
 	term.write(data);
