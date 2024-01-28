@@ -46,3 +46,7 @@ html, body{
 .split{
 	flex: 1 1 auto;
 }
+
+.fa-copy{
+	cursor: pointer;
+}

@@ -12,6 +12,10 @@ const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT);
 
 const runBut = document.getElementById("run_button");
 const stopBut = document.getElementById("stop_button");
+const shareBut = document.getElementById("share_button");
+const shareModalPublicId = document.getElementById("share_modal_public");
+const shareModalEditId = document.getElementById("share_modal_edit");
+const shareModal = new bootstrap.Modal('#share_modal');
 const lang = document.getElementById("lang_selector");
 
 var files = [];
@@ -67,6 +71,14 @@ function stop()
 	running = false;
 	invert_button();
 	send_json("stop");
+}
+
+function copy(id)
+{
+	if (window.isSecureContext && navigator.clipboard)
+	{
+		navigator.clipboard.writeText(document.getElementById(id).value);
+	}
 }
 
 function newProject()
@@ -155,6 +167,12 @@ ace.require("ace/ext/settings_menu").init();
 
 runBut.addEventListener("click", start);
 stopBut.addEventListener("click", stop);
+shareBut.addEventListener("click", () => {
+	shareModalPublicId.value = "public id";
+	shareModalEditId.value = "edit id";
+
+	shareModal.show();
+});
 
 var last_lang_select = document.querySelector("#lang_selector option:checked");
 lang.addEventListener("change", e => {
@@ -185,3 +203,7 @@ const split = new Split(['#editor', '#terminal'], {
 	snapOffset: 0,
 	sizes: [50, 50]
 });
+
+document.querySelectorAll(".fa-copy").forEach((ele) => {
+	ele.parentElement.remove();
+})
