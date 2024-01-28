@@ -8,6 +8,7 @@ const WebSocket = require("ws");
 const fs = require("fs");
 const spawn = require("child_process").spawn;
 const docker = require('dockerode');
+const sqlite3 = require("better-sqlite3");
 
 /** @enum {number}*/
 const CONFIG_ERROR = {
@@ -64,6 +65,19 @@ const users = [];
 const users_folder = path.resolve("./users");
 
 if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
+
+const db_folder = path.resolve("./db");
+if(!fs.existsSync(db_folder)) fs.mkdirSync(db_folder);
+const db = sqlite3(path.join(db_folder, "db.db"));
+db.pragma('journal_mode = WAL');
+db.pragma('cache_size = -31250');
+db.prepare(`create table if not exists "projects"(
+	public_id text primary key,
+	edit_id text NOT NULL UNIQUE,
+	pass text NOT NULL,
+	lang text not null
+)`).run();
+const insert_project = db.prepare(`insert into projects (public_id, edit_id, pass, lang) values (?, ?, ?, ?)`);
 
 /** @param {string} program - name of program*/
 function exe(program) { return isWin ? `${program}.exe` : program; }
@@ -329,14 +343,13 @@ setInterval(() => {
 	{
 		const user = users[i];
 		const ws = user.ws;
-		const proc = user.proc;
-		const runner = user.runner;
 		if (ws.isAlive === false)
 		{
+			const runner = user.runner;
 			console.log(`disconnected: ${ws._socket.remoteAddress}`);
 			ws.removeAllListeners();
 			ws.terminate();
-			proc.kill();
+			user.proc.kill();
 			if(runner != undefined) runner.proc.kill();
 			users.splice(i, 1);
 			continue;
@@ -350,6 +363,7 @@ app.use("/public", express.static(path.resolve("./public")));
 app.use("/@xterm", express.static(path.resolve("./node_modules/xterm")));
 app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
 app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
+app.use(express.urlencoded({extended:true}));
 
 app.set('view engine','ejs');
 app.engine('html', require('ejs').renderFile);
