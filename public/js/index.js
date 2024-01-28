@@ -168,8 +168,8 @@ ace.require("ace/ext/settings_menu").init();
 runBut.addEventListener("click", start);
 stopBut.addEventListener("click", stop);
 shareBut.addEventListener("click", () => {
-	shareModalPublicId.value = "public id";
-	shareModalEditId.value = "edit id";
+	shareModalPublicId.value = "<public url>";
+	shareModalEditId.value = "<edit url>";
 
 	shareModal.show();
 });
@@ -204,6 +204,7 @@ const split = new Split(['#editor', '#terminal'], {
 	sizes: [50, 50]
 });
 
-document.querySelectorAll(".fa-copy").forEach((ele) => {
-	ele.parentElement.remove();
-})
+if(!navigator.clipboard)
+{
+	document.querySelectorAll(".fa-copy").forEach((ele) => ele.parentElement.remove());
+}
