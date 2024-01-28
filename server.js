@@ -33,17 +33,26 @@ const RUN_RETURN = {
 
 /**
  * @typedef {Object} Runner
- * @property {pty.IPty} proc - pty for interacting with running program
- * @property {string} file - name of the main file
+ * @property {pty.IPty} proc pty for interacting with running program
+ * @property {string} file name of the main file
+ */
+
+/**
+ * @typedef {Object} Project
+ * @property {string} public_id
+ * @property {string} edit_id
+ * @property {string} pass
+ * @property {number} ttl
  */
 
 /**
  * @typedef {Object} User
- * @property {WebSocket} ws - websocket of user
- * @property {string} path - path to user home
- * @property {string} name - name of user
- * @property {pty.IPty} proc - normal pty terminal for interaction
- * @property {Runner} runner - running program data
+ * @property {WebSocket} ws websocket of user
+ * @property {string} path path to user home
+ * @property {string} name name of user
+ * @property {pty.IPty} proc normal pty terminal for interaction
+ * @property {?Runner} runner running program data
+ * @property {?Project} project opened project
  */
 
 /**
@@ -75,12 +84,22 @@ db.prepare(`create table if not exists "projects"(
 	public_id text primary key,
 	edit_id text NOT NULL UNIQUE,
 	pass text NOT NULL,
-	lang text not null
+	lang text NOT NULL,
+	ttl number NOT NULL
 )`).run();
-const insert_project = db.prepare(`insert into projects (public_id, edit_id, pass, lang) values (?, ?, ?, ?)`);
+const insert_project = db.prepare(`insert into projects (public_id, edit_id, pass, lang, ttl) values (?, ?, ?, ?, ?)`);
+const get_eid_project = db.prepare(`select * from projects where edit_id = ?`);
+const get_id_project = db.prepare(`select * from projects where public_id = ?`);
 
-/** @param {string} program - name of program*/
+/** @param {string} program name of program */
 function exe(program) { return isWin ? `${program}.exe` : program; }
+
+/**
+ * @param {!any} toCheck the var to check
+ * @param {!string} name name of variable thats beingt checked
+ * @throws if toCheck == undefined
+ */
+function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
 /**
  * @param {!User} user
@@ -88,7 +107,6 @@ function exe(program) { return isWin ? `${program}.exe` : program; }
  * @returns {string}
  */
 function get_user_file(user, filename) { return path.join(user.path, filename); }
-//function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
 /**
  * @param {User} user
@@ -263,6 +281,32 @@ const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
 	console.log(`new session: ${req.socket.remoteAddress}`);
 
+	const queries = new URL(req.url, "ws://"+req.headers.host).searchParams;
+	/**@type Project*/
+	var project;
+	if(queries.size > 0)
+	{
+		const id = queries.get("id");
+		const eid = queries.get("eid");
+		if(id) project = get_id_project.get(id);
+		else if(eid) project = get_eid_project.get(eid);
+	}
+
+	if(project)
+	{
+		
+	}
+	else
+	{
+		project = {
+			"public_id": "",
+			"edit_id": "",
+			"pass": "",
+			"ttl": -1,
+		}
+
+	}
+
 	// ToDo name -> hash/id
 	var name = req.socket.remoteAddress;
 	name = name.slice(name.lastIndexOf(":")+1);
@@ -271,7 +315,8 @@ wss.on('connection', (ws, req) => {
 		"path": path.join(users_folder, name),
 		"runner": undefined,
 		"name": name,
-		"proc": undefined
+		"proc": undefined,
+		"project": project
 	};
 
 	fs.mkdir(user.path, ()=>{});
@@ -390,6 +435,9 @@ app.get("/:lang", (req, res) => {
 	}
 	res.render("index", {"lang": lang});
 });
-app.get("/", (req, res) => res.redirect("/python"));
+app.get("/", (req, res) => {
+	if(req.query) res.render("index", { "lang": "py" });
+	else res.redirect("/python");
+});
 
 app.listen(WEB_PORT, console.log("started"));

@@ -8,7 +8,7 @@ const term = new Terminal({
 	cursorBlink: true,
 	convertEol: true,
 });
-const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT);
+const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT + window.location.search);
 
 const runBut = document.getElementById("run_button");
 const stopBut = document.getElementById("stop_button");
