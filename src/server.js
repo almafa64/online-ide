@@ -1,8 +1,7 @@
 'use strict';
 
-const express = require("express");
+const utils = require("./utils");
 const path = require("path");
-const os = require('os');
 const pty = require('node-pty');
 const WebSocket = require("ws");
 const fs = require("fs");
@@ -63,12 +62,9 @@ const RUN_RETURN = {
 
 const TIMEOUT = 1 * 60 * 1000;
 const SOCKET_PORT = 3000;
-const WEB_PORT = 3001;
 
-const isWin = os.platform() === 'win32';
-const shell = process.env[isWin ? 'COMSPEC' : 'SHELL'];
-const args = isWin ? ["/k"] : [];
-const app = express();
+const shell = process.env[utils.isWin ? 'COMSPEC' : 'SHELL'];
+const args = utils.isWin ? ["/k"] : [];
 /** @type {User[]} */
 const users = [];
 const users_folder = path.resolve("./users");
@@ -90,16 +86,6 @@ db.prepare(`create table if not exists "projects"(
 const insert_project = db.prepare(`insert into projects (public_id, edit_id, pass, lang, ttl) values (?, ?, ?, ?, ?)`);
 const get_eid_project = db.prepare(`select * from projects where edit_id = ?`);
 const get_id_project = db.prepare(`select * from projects where public_id = ?`);
-
-/** @param {string} program name of program */
-function exe(program) { return isWin ? `${program}.exe` : program; }
-
-/**
- * @param {!any} toCheck the var to check
- * @param {!string} name name of variable thats beingt checked
- * @throws if toCheck == undefined
- */
-function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Error(`${name} cannot be undefined`)}
 
 /**
  * @param {!User} user
@@ -175,20 +161,12 @@ function get_config_async(user, lang)
 	});
 }
 
-function get_time()
-{
-	var d = new Date();
-	return d.toLocaleString();
-}
-
-/** @param {string} msg */
-function log(msg) { console.log(`[${get_time()}]: ` + msg); }
 /** @param {!User} user */
-function log_start(user) { log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_start(user) { utils.log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 /** @param {!User} user */
-function log_stop(user) { log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_stop(user) { utils.log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 /** @param {!User} user */
-function log_compile(user) { log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_compile(user) { utils.log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 
 /**
  * @param {!User} user
@@ -239,7 +217,7 @@ function compile_process(user, cmd, args, configs)
 	return start_process(user, cmd, args, configs, (e) => {
 		if(e == "0")
 		{
-			configs.mainFile = exe("main");
+			configs.mainFile = utils.exe("main");
 			user.runner.proc.kill();
 			if(start_process(user, get_user_file(user, configs.mainFile), [], configs)) log_start(user);
 		}
@@ -257,18 +235,18 @@ function run(user, lang) {
 			const mainFile = get_user_file(user, configs.mainFile);
 			switch(lang)
 			{
-				case "py": start_process(user, exe("python"), [mainFile], configs); return res(RUN_RETURN.RUN);
-				case "js": start_process(user, exe("node"), [mainFile], configs); return res(RUN_RETURN.RUN);
+				case "py": start_process(user, utils.exe("python"), [mainFile], configs); return res(RUN_RETURN.RUN);
+				case "js": start_process(user, utils.exe("node"), [mainFile], configs); return res(RUN_RETURN.RUN);
 				case "c":
 					fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
 						var c_files = files.filter(f => path.extname(f).toLowerCase() == ".c");
-						compile_process(user, exe("gcc"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(c_files), configs);
+						compile_process(user, utils.exe("gcc"), ["-Wall", "-Os", "-s", "-o", utils.exe("main")].concat(c_files), configs);
 					});
 					return res(RUN_RETURN.COMPILE);
 				case "cpp":
 					fs.readdir(user.path, {recursive: true, encoding: "utf8"}, (err, files) => {
 						var cpp_files = files.filter(f => path.extname(f).toLowerCase() == ".cpp");
-						compile_process(user, exe("g++"), ["-Wall", "-Os", "-s", "-o", exe("main")].concat(cpp_files), configs);
+						compile_process(user, utils.exe("g++"), ["-Wall", "-Os", "-s", "-o", utils.exe("main")].concat(cpp_files), configs);
 					});
 					return res(RUN_RETURN.COMPILE);
 				default: send_message(user, `Language '${lang}' is not supported`, MSG_LEVEL.ERROR); return rej(RUN_RETURN.ERROR);
@@ -287,7 +265,7 @@ function run(user, lang) {
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
-	log(`new session: ${req.socket.remoteAddress}`);
+	utils.log(`new session: ${req.socket.remoteAddress}`);
 
 	const queries = new URL(req.url, "ws://"+req.headers.host).searchParams;
 	/**@type Project*/
@@ -363,7 +341,7 @@ wss.on('connection', (ws, req) => {
 					break;
 				case "save":
 					fs.writeFile(get_user_file(user, data.path), data.data, {encoding: "utf8"}, () => send_json(user, "saveconf"));
-					log(`${name} saved file '${data.path}'`);
+					utils.log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
 					run(user, data).then(ret => {
@@ -399,7 +377,7 @@ setInterval(() => {
 		if (ws.isAlive === false)
 		{
 			const runner = user.runner;
-			log(`disconnected: ${ws._socket.remoteAddress}`);
+			utils.log(`disconnected: ${ws._socket.remoteAddress}`);
 			ws.removeAllListeners();
 			ws.terminate();
 			user.proc.kill();
@@ -412,40 +390,4 @@ setInterval(() => {
 	};
 }, TIMEOUT);
 
-app.use("/public", express.static(path.resolve("./public")));
-app.use("/@xterm", express.static(path.resolve("./node_modules/xterm")));
-app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
-app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
-app.use(express.urlencoded({extended:true}));
-
-app.set('view engine','ejs');
-app.engine('html', require('ejs').renderFile);
-app.set('views', path.resolve("./pages"));
-
-app.get("/:lang", (req, res) => {
-	var lang = req.params.lang;
-	switch(lang)
-	{
-		case "javascript":
-		case "js":
-			lang = "js";
-			break;
-		case "python":
-		case "py":
-			lang = "py";
-			break;
-		case "cpp":
-			lang = "cpp";
-			break
-		case "c":
-			lang = "c";
-			break;
-	}
-	res.render("index", { "lang": lang });
-});
-app.get("/", (req, res) => {
-	if(req.query.id || req.query.eid) res.render("index", { "lang": "py" });
-	else res.redirect("/python");
-});
-
-app.listen(WEB_PORT, log("started"));
+require("./web_server");
