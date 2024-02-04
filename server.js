@@ -175,12 +175,20 @@ function get_config_async(user, lang)
 	});
 }
 
+function get_time()
+{
+	var d = new Date();
+	return d.toLocaleString();
+}
+
+/** @param {string} msg */
+function log(msg) { console.log(`[${get_time()}]: ` + msg); }
 /** @param {!User} user */
-function log_start(user) { console.log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_start(user) { log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 /** @param {!User} user */
-function log_stop(user) { console.log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_stop(user) { log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 /** @param {!User} user */
-function log_compile(user) { console.log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_compile(user) { log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
 
 /**
  * @param {!User} user
@@ -279,7 +287,7 @@ function run(user, lang) {
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
-	console.log(`new session: ${req.socket.remoteAddress}`);
+	log(`new session: ${req.socket.remoteAddress}`);
 
 	const queries = new URL(req.url, "ws://"+req.headers.host).searchParams;
 	/**@type Project*/
@@ -355,7 +363,7 @@ wss.on('connection', (ws, req) => {
 					break;
 				case "save":
 					fs.writeFile(get_user_file(user, data.path), data.data, {encoding: "utf8"}, () => send_json(user, "saveconf"));
-					console.log(`${name} saved file '${data.path}'`);
+					log(`${name} saved file '${data.path}'`);
 					break;
 				case "run":
 					run(user, data).then(ret => {
@@ -391,7 +399,7 @@ setInterval(() => {
 		if (ws.isAlive === false)
 		{
 			const runner = user.runner;
-			console.log(`disconnected: ${ws._socket.remoteAddress}`);
+			log(`disconnected: ${ws._socket.remoteAddress}`);
 			ws.removeAllListeners();
 			ws.terminate();
 			user.proc.kill();
@@ -440,4 +448,4 @@ app.get("/", (req, res) => {
 	else res.redirect("/python");
 });
 
-app.listen(WEB_PORT, console.log("started"));
+app.listen(WEB_PORT, log("started"));
