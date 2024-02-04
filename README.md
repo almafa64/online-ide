@@ -1,5 +1,5 @@
 # Online IDE
-version: 0.8.0
+version: 0.8.3
 
 ## Setup
 1. npm install
