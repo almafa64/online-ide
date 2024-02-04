@@ -17,6 +17,8 @@ const shareModalPublicId = document.getElementById("share_modal_public");
 const shareModalEditId = document.getElementById("share_modal_edit");
 const shareModal = new bootstrap.Modal('#share_modal');
 const lang = document.getElementById("lang_selector");
+const helpBut = document.getElementById("help_button");
+const helpModal = new bootstrap.Modal('#help_modal');
 
 var files = [];
 var active_file = {};
@@ -173,6 +175,7 @@ shareBut.addEventListener("click", () => {
 
 	shareModal.show();
 });
+helpBut.addEventListener("click", () => helpModal.show());
 
 var last_lang_select = document.querySelector("#lang_selector option:checked");
 lang.addEventListener("change", e => {

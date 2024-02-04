@@ -433,10 +433,10 @@ app.get("/:lang", (req, res) => {
 			lang = "c";
 			break;
 	}
-	res.render("index", {"lang": lang});
+	res.render("index", { "lang": lang });
 });
 app.get("/", (req, res) => {
-	if(req.query) res.render("index", { "lang": "py" });
+	if(req.query.id || req.query.eid) res.render("index", { "lang": "py" });
 	else res.redirect("/python");
 });
 
