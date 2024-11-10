@@ -16,7 +16,17 @@ function undefined_check(toCheck, name) { if(toCheck === undefined) throw new Er
 function get_time()
 {
 	var d = new Date();
-	return d.toLocaleString();
+	return d.toLocaleString("en-GB", {
+		hour12: false,
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+		/*timeZone: "UTC",
+		timeZoneName: "short"*/
+	});
 }
 
 /** @param {string} msg */
