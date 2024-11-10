@@ -4,18 +4,19 @@ const express = require("express");
 
 const app = express();
 const WEB_PORT = 3001;
+const PATH = "/online-ide";
 
-app.use("/public", express.static(path.resolve("./public")));
-app.use("/@xterm", express.static(path.resolve("./node_modules/xterm")));
-app.use("/@xterm", express.static(path.resolve("./node_modules/@xterm")));
-app.use("/ace", express.static(path.resolve("./node_modules/ace-builds")));
+app.use(`${PATH}/public`, express.static(path.resolve("./public")));
+app.use(`${PATH}/@xterm`, express.static(path.resolve("./node_modules/xterm")));
+app.use(`${PATH}/@xterm`, express.static(path.resolve("./node_modules/@xterm")));
+app.use(`${PATH}/ace`, express.static(path.resolve("./node_modules/ace-builds")));
 app.use(express.urlencoded({extended:true}));
 
 app.set('view engine','ejs');
 app.engine('html', require('ejs').renderFile);
 app.set('views', path.resolve("./pages"));
 
-app.get("/:lang", (req, res) => {
+app.get(`${PATH}/:lang`, (req, res) => {
 	var lang = req.params.lang;
 	switch(lang)
 	{
@@ -36,9 +37,9 @@ app.get("/:lang", (req, res) => {
 	}
 	res.render("index", { "lang": lang });
 });
-app.get("/", (req, res) => {
+app.get(`${PATH}/`, (req, res) => {
 	if(req.query.id || req.query.eid) res.render("index", { "lang": "py" });
-	else res.redirect("/python");
+	else res.redirect(`${PATH}/python`);
 });
 
 app.listen(WEB_PORT, utils.log("started"));

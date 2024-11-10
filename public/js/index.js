@@ -1,14 +1,13 @@
 'use strict';
 
 const WS_SERVER_IP = location.hostname;
-const WS_SERVER_PORT = "3000";
 
 const termDoc = document.getElementById('terminal');
 const term = new Terminal({
 	cursorBlink: true,
 	convertEol: true,
 });
-const socket = new WebSocket("ws://" + WS_SERVER_IP + ":" + WS_SERVER_PORT + window.location.search);
+const socket = new WebSocket(`wss://${WS_SERVER_IP}/${window.location.pathname.split("/")[1]}/ws/${window.location.search}`);
 
 const runBut = document.getElementById("run_button");
 const stopBut = document.getElementById("stop_button");

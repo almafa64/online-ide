@@ -265,9 +265,19 @@ function run(user, lang) {
 
 const wss = new WebSocket.Server({ port: SOCKET_PORT });
 wss.on('connection', (ws, req) => {
-	utils.log(`new session: ${req.socket.remoteAddress}`);
+	ws.ip = req.headers["x-real-ip"] || ws._socket.remoteAddress;
+
+	if(req.headers.origin !== "https://themoonbase.dnet.hu")
+	{
+		utils.log(`Blocked ${req.headers.origin} (${ws.ip}). origin didnt match`);
+		ws.terminate();
+		return;
+	}
+
+	utils.log(`new session: ${ws.ip}`);
 
 	const queries = new URL(req.url, "ws://"+req.headers.host).searchParams;
+
 	/**@type Project*/
 	var project;
 	if(queries.size > 0)
@@ -294,8 +304,9 @@ wss.on('connection', (ws, req) => {
 	}
 
 	// ToDo name -> hash/id
-	var name = req.socket.remoteAddress;
+	var name = ws.ip;
 	name = name.slice(name.lastIndexOf(":")+1);
+	/** @type {User} */
 	const user = {
 		"ws": ws,
 		"path": path.join(users_folder, name),
@@ -377,7 +388,7 @@ setInterval(() => {
 		if (ws.isAlive === false)
 		{
 			const runner = user.runner;
-			utils.log(`disconnected: ${ws._socket.remoteAddress}`);
+			utils.log(`disconnected: ${ws.ip}`);
 			ws.removeAllListeners();
 			ws.terminate();
 			user.proc.kill();

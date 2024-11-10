@@ -2,3 +2,4 @@
 node_modules/
 users/
 db/
+run.sh
