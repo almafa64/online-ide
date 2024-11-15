@@ -72,10 +72,10 @@ const args = utils.isWin ? ["/k"] : [];
 const users = [];
 const users_folder = path.resolve("./users");
 
-if(!fs.existsSync(users_folder)) fs.mkdirSync(users_folder);
+fs.mkdirSync(users_folder, { recursive: true });
 
 const db_folder = path.resolve("./db");
-if(!fs.existsSync(db_folder)) fs.mkdirSync(db_folder);
+fs.mkdirSync(db_folder, { recursive: true });
 const db = sqlite3(path.join(db_folder, "db.db"));
 db.pragma('journal_mode = WAL');
 db.pragma('cache_size = -31250');
@@ -120,10 +120,12 @@ function send_message(user, msg, level)
 	var newMsg = msg;
 	if(level !== undefined)
 	{
-		if(level === MSG_LEVEL.INFO) newMsg = "\x1b[39;49m";
-		else if(level === MSG_LEVEL.WARNING) newMsg = "\x1b[33;49m";
-		else if(level === MSG_LEVEL.ERROR) newMsg = "\x1b[31;49m";
-		else if(level === MSG_LEVEL.MSG) newMsg = "\x1b[32;49m";
+		switch (level) {
+			case MSG_LEVEL.INFO: newMsg = "\x1b[39;49m"; break;
+			case MSG_LEVEL.WARNING: newMsg = "\x1b[33;49m"; break;
+			case MSG_LEVEL.ERROR: newMsg = "\x1b[31;49m"; break;
+			case MSG_LEVEL.MSG: newMsg = "\x1b[32;49m"; break;
+		}
 		newMsg += msg + "\x1b[0m\n";
 	}
 	send_json(user, "msg", newMsg);
@@ -174,11 +176,11 @@ function log_compile(user) { utils.log(`${user.name} started compiling '${user.r
  * @param {!User} user
  * @param {!string} cmd
  * @param {!string[]} args
- * @param {!Config} configs
+ * @param {!Config} config
  * @param {?pty.IEvent<string>} onExit
  * @returns {boolean} true if successfully started, false otherwise
  */
-function start_process(user, cmd, args, configs, onExit)
+function start_process(user, cmd, args, config, onExit)
 {
 	/*
 		windows: no colors (until virtual terminal isn't enabled)
@@ -192,10 +194,13 @@ function start_process(user, cmd, args, configs, onExit)
 		cols: user.proc.cols,
 		rows: user.proc.rows,
 	})
-	user.runner = { "proc": child, "file": configs.mainFile };
+	
+	user.runner = { "proc": child, "file": config.mainFile };
+	
 	child.on("data", data => {
 		user.ws.send(data);
 	});
+
 	if(onExit === undefined)
 	{
 		child.on("exit", (e) => {
@@ -204,6 +209,7 @@ function start_process(user, cmd, args, configs, onExit)
 		})
 	}
 	else child.on("exit", onExit);
+
 	return child.pid != -1;
 }
 
@@ -211,18 +217,23 @@ function start_process(user, cmd, args, configs, onExit)
  * @param {!User} user
  * @param {!string} cmd
  * @param {!string[]} args
- * @param {!Config} configs
+ * @param {!Config} config
  * @returns {boolean} true if successfully started, false otherwise
  */
-function compile_process(user, cmd, args, configs)
+function compile_process(user, cmd, args, config)
 {
-	return start_process(user, cmd, args, configs, (e) => {
-		if(e == "0")
+	return start_process(user, cmd, args, config, (e) => {
+		if(e != "0")
 		{
-			configs.mainFile = utils.exe("main");
-			user.runner.proc.kill();
-			if(start_process(user, get_user_file(user, configs.mainFile), [], configs)) log_start(user);
+			send_message(user, `compiler returned ${e}`, MSG_LEVEL.ERROR);
+			utils.log(`${user.name} compiling failed: ${e}`);
+			return;
 		}
+
+		config.mainFile = utils.exe("main");
+		user.runner.proc.kill();
+		if(start_process(user, get_user_file(user, config.mainFile), [], config))
+			log_start(user);
 	});
 }
 
@@ -337,7 +348,7 @@ wss.on('connection', (ws, req) => {
 		useConpty: false,
 	});
 
-	user["proc"] = proc;
+	user.proc = proc;
 	users.push(user);
 
 	ws.isAlive = true;
