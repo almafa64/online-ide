@@ -278,7 +278,7 @@ wss.on('connection', (ws, req) => {
 		return;
 	}
 
-	utils.log(`new session: ${ws.ip}`);
+	utils.log(`${ws.ip} connected`);
 
 	const queries = new URL(req.url, "ws://"+req.headers.host).searchParams;
 
@@ -392,7 +392,7 @@ setInterval(() => {
 		if (ws.isAlive === false)
 		{
 			const runner = user.runner;
-			utils.log(`disconnected: ${ws.ip}`);
+			utils.log(`${ws.ip} disconnected`);
 			ws.removeAllListeners();
 			ws.terminate();
 			user.proc.kill();

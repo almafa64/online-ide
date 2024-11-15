@@ -1,5 +1,8 @@
 'use strict';
 const os = require('os');
+const fs = require('fs');
+
+const log_stream = fs.createWriteStream("latest.log", { encoding: "utf8", flags: "w" });
 
 const isWin = os.platform() === 'win32';
 
@@ -30,7 +33,12 @@ function get_time()
 }
 
 /** @param {string} msg */
-function log(msg) { console.log(`[${get_time()}]: ` + msg); }
+function log(msg)
+{
+	const text = `[${get_time()}] ` + msg;
+	console.log(text);
+	log_stream.write(text + "\n");
+}
 
 module.exports = {
 	log: log,
