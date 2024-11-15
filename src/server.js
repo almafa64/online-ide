@@ -197,18 +197,14 @@ function start_process(user, cmd, args, config, onExit)
 	
 	user.runner = { "proc": child, "file": config.mainFile };
 	
-	child.on("data", data => {
-		user.ws.send(data);
+	child.onData(data => user.ws.send(data));
+	child.onExit(e => {
+		const code = e.exitCode < 2147483648 ? e.exitCode : e.exitCode - Math.pow(2, 32);
+		if(onExit === undefined)
+			send_message(user, `\nprogram ended with exit code ${code}\nPress ENTER to continue`, MSG_LEVEL.MSG);
+		else
+			onExit(code);
 	});
-
-	if(onExit === undefined)
-	{
-		child.on("exit", (e) => {
-			if(e === undefined) e = 0;
-			send_message(user, `\nprogram ended with exit code ${e < 2147483648 ? e : e - Math.pow(2, 32)}\nPress ENTER to continue`, MSG_LEVEL.MSG);
-		})
-	}
-	else child.on("exit", onExit);
 
 	return child.pid != -1;
 }
@@ -416,4 +412,4 @@ setInterval(() => {
 	};
 }, TIMEOUT);
 
-server.listen(PORT, () => console.log(`started on ${PORT}`))
+server.listen(PORT, () => utils.log(`server started on ${PORT}`))
