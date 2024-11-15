@@ -9,6 +9,7 @@ const fsPromise = require("fs/promises");
 const spawn = require("child_process").spawn;
 const docker = require('dockerode');
 const sqlite3 = require("better-sqlite3");
+const server = require("http").createServer();
 
 /** @enum {number}*/
 const CONFIG_ERROR = {
@@ -63,7 +64,7 @@ const RUN_RETURN = {
  */
 
 const TIMEOUT = 1 * 60 * 1000;
-const SOCKET_PORT = 3000;
+const PORT = 3001;
 
 const shell = process.env[utils.isWin ? 'COMSPEC' : 'SHELL'];
 const args = utils.isWin ? ["/k"] : [];
@@ -88,6 +89,8 @@ db.prepare(`create table if not exists "projects"(
 const insert_project = db.prepare(`insert into projects (public_id, edit_id, pass, lang, ttl) values (?, ?, ?, ?, ?)`);
 const get_eid_project = db.prepare(`select * from projects where edit_id = ?`);
 const get_id_project = db.prepare(`select * from projects where public_id = ?`);
+
+server.on("request", require("./web_server")); // pass requests to web server
 
 /**
  * @param {!User} user
@@ -264,7 +267,7 @@ async function run(user, lang) {
 	}
 }
 
-const wss = new WebSocket.Server({ port: SOCKET_PORT });
+const wss = new WebSocket.Server({ server: server });
 wss.on('connection', (ws, req) => {
 	ws.ip = req.headers["x-real-ip"] || ws._socket.remoteAddress;
 
@@ -402,4 +405,4 @@ setInterval(() => {
 	};
 }, TIMEOUT);
 
-require("./web_server");
+server.listen(PORT, () => console.log(`started on ${PORT}`))

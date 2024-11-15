@@ -5,7 +5,6 @@ const utils = require("./utils");
 const express = require("express");
 
 const app = express();
-const WEB_PORT = 3001;
 const PATH = "/online-ide";
 
 app.use(`${PATH}/public`, express.static(path.resolve("./public")));
@@ -44,4 +43,4 @@ app.get(`${PATH}/`, (req, res) => {
 	else res.redirect(`${PATH}/python`);
 });
 
-app.listen(WEB_PORT, utils.log("started"));
+module.exports = app;
