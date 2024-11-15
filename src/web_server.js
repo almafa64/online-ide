@@ -1,3 +1,5 @@
+'use strict';
+
 const path = require("path");
 const utils = require("./utils");
 const express = require("express");
