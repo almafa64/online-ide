@@ -279,7 +279,7 @@ async function run(user, lang) {
 }
 
 const wss = new WebSocket.Server({ server: server });
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
 	ws.ip = req.headers["x-real-ip"] || ws._socket.remoteAddress;
 
 	if(req.headers.origin !== "https://themoonbase.dnet.hu")
@@ -331,7 +331,7 @@ wss.on('connection', (ws, req) => {
 		"project": project
 	};
 
-	fs.mkdir(user.path, ()=>{});
+	await fsPromise.mkdir(user.path);
 
 	/*
 	useConpty
