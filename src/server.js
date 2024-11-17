@@ -166,11 +166,15 @@ async function get_config_async(user, lang)
 }
 
 /** @param {!User} user */
-function log_start(user) { utils.log(`${user.name} started file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_start(user) { utils.user_log(user, `started file '${user.runner.file}', pid: ${user.runner.proc.pid}`); }
 /** @param {!User} user */
-function log_stop(user) { utils.log(`${user.name} stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_stop(user) { utils.user_log(user, `stopped file '${user.runner.file}', pid: ${user.runner.proc.pid}`); }
 /** @param {!User} user */
-function log_compile(user) { utils.log(`${user.name} started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`) }
+function log_compile(user) { utils.user_log(user, `started compiling '${user.runner.file}', pid: ${user.runner.proc.pid}`); }
+/** @param {!User} user */
+function log_save(user, path) { utils.user_log(user, `saved file '${path}'`); }
+/** @param {!User} user */
+function log_save_fail(user, path) { utils.user_log(user, `failed to save file '${path}'`); }
 
 /**
  * @param {!User} user
@@ -222,7 +226,7 @@ function compile_process(user, cmd, args, config)
 		if(e != "0")
 		{
 			send_message(user, `compiler returned ${e}`, MSG_LEVEL.ERROR);
-			utils.log(`${user.name} compiling failed: ${e}`);
+			utils.user_log(user, `compiling failed: ${e}`);
 			return;
 		}
 
@@ -364,7 +368,7 @@ wss.on('connection', (ws, req) => {
 				case "save":
 					await fsPromise.writeFile(get_user_file(user, data.path), data.data, {encoding: "utf8"});
 					send_json(user, "saveconf");
-					utils.log(`${name} saved file '${data.path}'`);
+					log_save(user, data.path);
 					break;
 				case "run":
 					const ret = await run(user, data);

@@ -35,13 +35,23 @@ function get_time()
 /** @param {string} msg */
 function log(msg)
 {
-	const text = `[${get_time()}] ` + msg;
+	const text = `[${get_time()}] ${msg}`;
 	console.log(text);
 	log_stream.write(text + "\n");
 }
 
+/** 
+ * @param {import('./server').User} user
+ * @param {string} msg 
+ */
+function user_log(user, msg)
+{
+	log(`'${user.name}' ${msg}`)
+}
+
 module.exports = {
 	log: log,
+	user_log: user_log,
 	get_time: get_time,
 	undefined_check: undefined_check,
 	exe: exe,
