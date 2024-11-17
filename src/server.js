@@ -95,9 +95,14 @@ server.on("request", require("./web_server")); // pass requests to web server
 /**
  * @param {!User} user
  * @param {!string} filename
- * @returns {string}
+ * @returns {string|undefined}
  */
-function get_user_file(user, filename) { return path.join(user.path, filename); }
+function get_user_file(user, filename)
+{
+	const file_path = path.resolve(path.join(user.path, filename));
+	if(!file_path.startsWith(user.path)) return undefined;
+	return file_path;
+}
 
 /**
  * @param {User} user
@@ -150,10 +155,12 @@ async function get_config_async(user, lang)
 		const data = await fsPromise.readFile(configPath, { encoding: "utf8" });
 		const json = JSON.parse(data);
 		
-		if(json.mainFile && json.mainFile.length > 0 && path.resolve(get_user_file(user, json.mainFile)).length > user.path.length)
-		{
 			// set main file to the main file from config if it exists and it is in the user directory
-			config.mainFile = json.mainFile;
+		if(json.mainFile && json.mainFile.length > 0)
+		{
+			const jsonMain = get_user_file(user, json.mainFile);
+			if(jsonMain && jsonMain.startsWith(user.path))
+				config.mainFile = json.mainFile;
 		}
 	}
 	catch {}
@@ -365,8 +372,15 @@ wss.on('connection', async (ws, req) => {
 					if(user.runner !== undefined) user.runner.proc.resize(data.w, data.h);
 					else proc.resize(data.w, data.h);
 					break;
-				case "save":
-					await fsPromise.writeFile(get_user_file(user, data.path), data.data, {encoding: "utf8"});
+				case "save": // ToDo turn this into POST request
+					const saveFile = get_user_file(user, data.path);
+					if(!saveFile)
+					{
+						send_message(user, `failed to save ${data.path}\n`);
+						log_save_fail(user, data.path);
+						break
+					}
+					await fsPromise.writeFile(saveFile, data.data, {encoding: "utf8"});
 					send_json(user, "saveconf");
 					log_save(user, data.path);
 					break;
