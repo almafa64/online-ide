@@ -1,5 +1,5 @@
 # Online IDE
-version: 0.8.3
+version: 0.9.0
 
 ## Setup
 1. npm install
@@ -11,6 +11,7 @@ version: 0.8.3
 - Python (+pip) - Python
 - NodeJs (+npm) - js
 - GCC - C/C++
+- Lua - lua
 
 ## Known bugs
 - Windows

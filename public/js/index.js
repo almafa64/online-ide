@@ -89,6 +89,11 @@ function newProject()
 
 	switch(lang.value)
 	{
+		case "lua":
+			active_file["name"] = "main.lua";
+			setValue('for i=0,9 do\n\tprint(string.rep(" ", i) .. i)\nend');
+			editor.session.setMode("ace/mode/lua");
+			break;
 		case "py":
 			active_file["name"] = "main.py";
 			setValue('for i in range(10):\n\tprint(" " * i + str(i))');

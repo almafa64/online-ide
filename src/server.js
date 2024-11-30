@@ -265,6 +265,7 @@ async function run(user, lang) {
 	const mainFile = get_user_file(user, config.mainFile);
 	switch(lang)
 	{
+		case "lua": start_process(user, utils.exe("lua"), [mainFile], config); return RUN_RETURN.RUN;
 		case "py": start_process(user, utils.exe("python"), [mainFile], config); return RUN_RETURN.RUN;
 		case "js": start_process(user, utils.exe("node"), [mainFile], config); return RUN_RETURN.RUN;
 		case "c": {

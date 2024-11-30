@@ -21,6 +21,9 @@ app.get(`${PATH}/:lang`, (req, res) => {
 	var lang = req.params.lang;
 	switch(lang)
 	{
+		case "lua":
+			lang = "lua";
+			break;
 		case "javascript":
 		case "js":
 			lang = "js";
@@ -29,6 +32,8 @@ app.get(`${PATH}/:lang`, (req, res) => {
 		case "py":
 			lang = "py";
 			break;
+		case "cxx":
+		case "c++":
 		case "cpp":
 			lang = "cpp";
 			break
