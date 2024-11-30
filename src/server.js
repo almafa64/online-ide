@@ -338,7 +338,7 @@ wss.on('connection', async (ws, req) => {
 		"project": project
 	};
 
-	await fsPromise.mkdir(user.path);
+	await fsPromise.mkdir(user.path, { recursive: true });
 
 	/*
 	useConpty
